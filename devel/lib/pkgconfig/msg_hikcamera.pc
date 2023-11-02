@@ -1,0 +1,8 @@
+prefix=/home/quintinumi/project/ws_hikcamera_ros_driver/devel
+
+Name: msg_hikcamera
+Description: Description of msg_hikcamera
+Version: 0.0.0
+Cflags: -I/home/quintinumi/project/ws_hikcamera_ros_driver/src/msg_hikcamera/include
+Libs: -L${prefix}/lib -lmsg_hikcamera
+Requires: cv_bridge roscpp rospy sensor_msgs std_msgs
