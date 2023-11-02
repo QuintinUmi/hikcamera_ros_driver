@@ -1,0 +1,12 @@
+<launch>
+    <node pkg="msg_hikcamera" type="msg_hikcamera" name="hikrobot_camera" output="screen">
+        <param name="width" value=1280/>
+        <param name="height" value=1024/>
+        <param name="frameRateEnable" value=false/>
+        <param name="frameRate" value=80/>
+        <param name="exposureTime" value=15000/>
+        <param name="gainAuto" value=2/>
+        <param name="offset_x" value=0/>
+        <param name="offset_y" value=0/>
+    </node>
+</launch>
