@@ -198,8 +198,8 @@ sensor_msgs::ImagePtr grabbingOneFrame(CAMERA_INIT_INFO *cameraInitInfo)
     MV_FRAME_OUT stImageInfo = cameraInitInfo->stImageInfo;
     unsigned int nDataSize = cameraInitInfo->nDataSize;
 
-    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
-    // nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
+    // nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
+    nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
     // nRet = MV_CC_GetImageForRGB(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
     if (nRet == MV_OK)
     {
@@ -212,14 +212,14 @@ sensor_msgs::ImagePtr grabbingOneFrame(CAMERA_INIT_INFO *cameraInitInfo)
     {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
     }
-    if(NULL != stImageInfo.pBufAddr)
-    {
-        nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
-        if(nRet != MV_OK)
-        {
-            printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
-        }
-    }
+    // if(NULL != stImageInfo.pBufAddr)
+    // {
+    //     nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
+    //     if(nRet != MV_OK)
+    //     {
+    //         printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
+    //     }
+    // }
 
 
     unsigned char *pDataForRGB = NULL;
