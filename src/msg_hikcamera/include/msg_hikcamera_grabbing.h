@@ -10,7 +10,7 @@ typedef struct _CAMERA_INIT_INFO_
     unsigned int nDataSize;
     MV_FRAME_OUT stImageInfo;
 
-    unsigned char* pIamgeCache;
+    unsigned char* pImageCache;
 
 }CAMERA_INIT_INFO;
 

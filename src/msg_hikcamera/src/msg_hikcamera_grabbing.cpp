@@ -160,11 +160,10 @@ CAMERA_INIT_INFO camera_init(unsigned int camIndex = 0){
     MVCC_INTVALUE stParam;
     memset(&stParam, 0, sizeof(MVCC_INTVALUE));
     nRet = MV_CC_GetIntValue(handle, "PayloadSize", &stParam);
-    // if (MV_OK != nRet)
-    // {
-    //     printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
-    //     return NULL;
-    // }
+    if (MV_OK != nRet)
+    {
+        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
+    }
 
     MV_FRAME_OUT_INFO_EX stFrameInfo = {0};
     memset(&stFrameInfo, 0, sizeof(MV_FRAME_OUT_INFO_EX));
@@ -199,8 +198,9 @@ sensor_msgs::ImagePtr grabbingOneFrame(CAMERA_INIT_INFO *cameraInitInfo)
     MV_FRAME_OUT stImageInfo = cameraInitInfo->stImageInfo;
     unsigned int nDataSize = cameraInitInfo->nDataSize;
 
-    // nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
-    nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
+    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
+    // nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
+    // nRet = MV_CC_GetImageForRGB(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
     if (nRet == MV_OK)
     {
         printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
@@ -212,7 +212,14 @@ sensor_msgs::ImagePtr grabbingOneFrame(CAMERA_INIT_INFO *cameraInitInfo)
     {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
     }
-
+    if(NULL != stImageInfo.pBufAddr)
+    {
+        nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
+        if(nRet != MV_OK)
+        {
+            printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
+        }
+    }
 
 
     unsigned char *pDataForRGB = NULL;
@@ -240,16 +247,18 @@ sensor_msgs::ImagePtr grabbingOneFrame(CAMERA_INIT_INFO *cameraInitInfo)
     }
 
     cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, pDataForRGB);
+    // cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, stImageInfo.pBufAddr);
     if (cvImage.empty())  
     {
         printf("Could not open or find the image\n");
     }
-
     sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImage).toImageMsg();
+
 
     cameraInitInfo->pUser = pUser;
     cameraInitInfo->stImageInfo = stImageInfo;
-    cameraInitInfo->pIamgeCache = pDataForRGB;
+    // cameraInitInfo->pIamgeCache = pDataForRGB;
+    cameraInitInfo->pImageCache = pDataForRGB;
 
     return pRosImg;
 }
@@ -315,7 +324,8 @@ int main(int argc, char *argv[])
     while(ros::ok()){
 
         imgMsg = grabbingOneFrame(&cameraInitInfo);
-        free(cameraInitInfo.pIamgeCache);
+        free(cameraInitInfo.pImageCache);
+        
 
         imgPub.publish(imgMsg);
         ros::spinOnce();
