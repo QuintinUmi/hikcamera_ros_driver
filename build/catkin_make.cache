@@ -1,2 +1,0 @@
-msg_hikcamera
--DCATKIN_DEVEL_PREFIX=/home/quintinumi/project/ws_hikcamera_ros_driver/devel -DCMAKE_INSTALL_PREFIX=/home/quintinumi/project/ws_hikcamera_ros_driver/install -G Unix Makefiles

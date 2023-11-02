@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC   -shared -Wl,-soname,libgtest_main.so -o ../lib/libgtest_main.so CMakeFiles/gtest_main.dir/src/gtest_main.cc.o  -Wl,-rpath,/home/quintinumi/project/ws_hikcamera_ros_driver/build/gtest/lib ../lib/libgtest.so -lpthread 
