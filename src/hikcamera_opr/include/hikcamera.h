@@ -24,7 +24,9 @@ class HikCamera
 
         CAMERA_INIT_INFO start_grabbing();
 
-        sensor_msgs::ImagePtr grabbingOneFrame();
+        sensor_msgs::ImagePtr grabbingOneFrame2ROS();
+
+        cv::Mat grabbingOneFrame2Mat();
 
         int freeFrameCache();
 

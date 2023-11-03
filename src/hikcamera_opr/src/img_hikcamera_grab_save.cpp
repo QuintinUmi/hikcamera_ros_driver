@@ -1,0 +1,123 @@
+#include <ros/ros.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <iostream>
+#include <boost/bind.hpp>
+
+#include <std_msgs/String.h>
+#include <sensor_msgs/Image.h>
+#include <std_msgs/Int8.h>
+#include <sensor_msgs/image_encodings.h>
+#include <cv_bridge/cv_bridge.h>
+#include "opencv2/opencv.hpp"        
+
+#include "image_transport/image_transport.h"
+
+#include "MvCameraControl.h"
+#include "CameraParams.h"
+
+#include "hikcamera.h"
+#include "kbhit.h"
+
+#define MAX_IMAGE_INDEX 200
+
+bool g_exit = false;
+
+void KeyInput_CallBack(std_msgs::Int8::ConstPtr key_ascii, ros::NodeHandle rosHandle, cv::Mat* cvImage){
+
+    cv::String filePath, fileName;
+    rosHandle.param("image_file_save_path", filePath, std::string("~/"));
+
+    int imgIndex = 0;
+    
+    if(key_ascii->data == 10){
+        // printf("\n----------------------------------------------------------------------------------%d\n", key_ascii->data);
+        while(imgIndex <= MAX_IMAGE_INDEX){
+            imgIndex ++;
+            std::string tempIndex = std::to_string(imgIndex);
+            fileName = filePath + tempIndex + ".jpg";
+            if(cv::imread(fileName).empty() && !cvImage->empty()){
+                // std::cout << fileName <<"\n";
+                // getchar();
+                // cv::namedWindow("ShowSavedImage", cv::WINDOW_NORMAL);
+                // cv::imshow("ShowSavedImage", *cvImage);
+                // cv::waitKey(0); 
+                cv::imwrite(fileName, *cvImage);            
+                
+                break;
+            }
+            // }
+        }
+    }
+    if(key_ascii->data == 27){
+        g_exit = true;
+    }
+            
+}
+
+int main(int argc, char *argv[])
+{
+    ros::init(argc, argv, "msg_camera_grabbing");
+    ros::NodeHandle rosHandle;
+    HikCamera hikCamera(rosHandle, 0);
+
+    int nRet = MV_OK;
+
+    cv::Mat cvImage;
+    sensor_msgs::Image imgOneFrame;
+    sensor_msgs::ImagePtr imgMsg;
+    CAMERA_INIT_INFO cameraInitInfo = hikCamera.camera_init();
+
+    cv::String filePath, fileName;
+
+    // ros::Publisher imgPub = rosHandle.advertise<sensor_msgs::Image>("/msg_camera/img", 100);
+    ros::Publisher msgPub = rosHandle.advertise<std_msgs::String>("/msg_camera/std_msgs", 100);
+    ros::Subscriber keySub = rosHandle.subscribe<std_msgs::Int8>("/msg_hikcamera/key_input", 10, 
+                                                                boost::bind(&KeyInput_CallBack, _1, rosHandle, &cvImage));
+
+    nRet = hikCamera.setCameraParam();
+    if(MV_OK != nRet){
+        printf("There is something wrong with hikcamera parameters setting!\n");
+        getchar();
+    }
+    cameraInitInfo = hikCamera.start_grabbing();
+    
+    image_transport::ImageTransport imgIt(rosHandle);
+
+    //topic name is /camera_front/image_color,the publish message queue size is 1.
+    image_transport::Publisher imgPub = imgIt.advertise("/msg_camera/img", 1);
+
+    void *pUser = cameraInitInfo.pUser;
+    unsigned int nDataSize = cameraInitInfo.nDataSize;
+    MV_FRAME_OUT* stImageInfo;
+    
+
+    // int loopRate;
+    // rosHandle.param("ros-image-publish-rate", loopRate, 100);
+    // ros::Rate loop_rate(loopRate);
+    while(ros::ok()){
+
+        cvImage = hikCamera.grabbingOneFrame2Mat();
+        imgMsg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImage).toImageMsg();
+        
+        imgPub.publish(imgMsg);
+        ros::spinOnce();
+        
+        hikCamera.freeFrameCache();
+
+        if(g_exit){
+            break;
+        }
+
+        
+        // loop_rate.sleep();
+    }
+
+    // hikCamera.stop_grabbing();
+
+
+    return 0;
+}

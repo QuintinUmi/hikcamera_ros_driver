@@ -25,7 +25,7 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
     this->rosHandle = nodeHandle;
     this->camIndex = cameraIndex;
     this->nRet = MV_OK;
-
+    
     rosHandle.param("width", this->width, 1280);
     rosHandle.param("height", this->height, 1024);
     rosHandle.param("Offset_x", this->Offset_x, 0);
@@ -224,7 +224,7 @@ CAMERA_INIT_INFO HikCamera::start_grabbing()
     return cameraInitInfo;
 }
 
-sensor_msgs::ImagePtr HikCamera::grabbingOneFrame()
+sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS()
 {
     void* pUser = cameraInitInfo.pUser;
     MV_FRAME_OUT stImageInfo = cameraInitInfo.stImageInfo;
@@ -294,6 +294,77 @@ sensor_msgs::ImagePtr HikCamera::grabbingOneFrame()
 
     return pRosImg;
 }
+
+cv::Mat HikCamera::grabbingOneFrame2Mat()
+{
+    void* pUser = cameraInitInfo.pUser;
+    MV_FRAME_OUT stImageInfo = cameraInitInfo.stImageInfo;
+    unsigned int nDataSize = cameraInitInfo.nDataSize;
+
+    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
+    // nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
+    // nRet = MV_CC_GetImageForRGB(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
+    if (nRet == MV_OK)
+    {
+        printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
+        stImageInfo.stFrameInfo.nWidth, stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nFrameNum, stImageInfo.stFrameInfo.nFrameLen);
+        
+        // for(int i = 0; i <= stImageInfo.stFrameInfo.nFrameLen; i++) printf("pData[%d] = %d\n", i, stImageInfo.pBufAddr[i]);
+    }
+    else
+    {
+        printf("Get Image fail! nRet [0x%x]\n", nRet);
+    }
+    if(NULL != stImageInfo.pBufAddr)
+    {
+        nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
+        if(nRet != MV_OK)
+        {
+            printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
+        }
+    }
+
+
+    unsigned char *pDataForRGB = NULL;
+
+    pDataForRGB = (unsigned char*)malloc(stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight * 4 + 2048);
+    if (NULL == pDataForRGB)
+    {
+        printf("Error1");
+    }
+
+    MV_CC_PIXEL_CONVERT_PARAM stConvertParam = {0};
+    stConvertParam.nWidth = stImageInfo.stFrameInfo.nWidth;
+    stConvertParam.nHeight = stImageInfo.stFrameInfo.nHeight;
+    stConvertParam.pSrcData = stImageInfo.pBufAddr;
+    stConvertParam.nSrcDataLen = stImageInfo.stFrameInfo.nFrameLen;
+    stConvertParam.enSrcPixelType = stImageInfo.stFrameInfo.enPixelType;
+    stConvertParam.enDstPixelType = PixelType_Gvsp_RGB8_Packed;
+    stConvertParam.pDstBuffer = pDataForRGB;
+    stConvertParam.nDstBufferSize = stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight *  4 + 2048;
+
+    nRet = MV_CC_ConvertPixelType(pUser, &stConvertParam);
+    if (MV_OK != nRet)
+    {
+        printf("MV_CC_ConvertPixelType fail! nRet [%x]\n", nRet);
+    }
+
+    cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, pDataForRGB);
+    // cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, stImageInfo.pBufAddr);
+    if (cvImage.empty())  
+    {
+        printf("Could not open or find the image\n");
+    }
+
+
+    cameraInitInfo.pUser = pUser;
+    cameraInitInfo.stImageInfo = stImageInfo;
+    // cameraInitInfo->pIamgeCache = pDataForRGB;
+    cameraInitInfo.pImageCache = pDataForRGB;
+
+    return cvImage;
+}
+
 
 int HikCamera::freeFrameCache()
 {

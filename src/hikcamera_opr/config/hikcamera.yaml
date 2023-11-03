@@ -9,3 +9,5 @@ ExposureTime: 15000
 GainAuto: 2
 
 BayerCvtQuality: 1
+
+isColor: True
