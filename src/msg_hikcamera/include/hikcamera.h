@@ -30,7 +30,6 @@ class HikCamera
 
         void stop_grabbing();
 
-
         void printParam();
 
 

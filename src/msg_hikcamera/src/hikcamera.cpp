@@ -22,9 +22,9 @@
 
 HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
 {
-    rosHandle = nodeHandle;
-    camIndex = cameraIndex;
-    nRet = MV_OK;
+    this->rosHandle = nodeHandle;
+    this->camIndex = cameraIndex;
+    this->nRet = MV_OK;
 
     rosHandle.param("width", this->width, 1280);
     rosHandle.param("height", this->height, 1024);
@@ -35,7 +35,9 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
     rosHandle.param("ExposureTime", this->ExposureTime, 15000);
     rosHandle.param("GainAuto", this->GainAuto, 2);
 
+    rosHandle.param("BayerCvtQuality", this->bayerCvtQuality, 1);
 
+    // rosHandle.param("ros-publication-rate", this->rosPublicationRate, 100);
 }
 HikCamera::~HikCamera()
 {
