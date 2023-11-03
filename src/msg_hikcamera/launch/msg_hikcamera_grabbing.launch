@@ -1,0 +1,15 @@
+<launch>
+    <!-- HikCamera Node -->
+    <param name="width" value="1280"/>
+    <param name="height" value="1024"/>
+    <param name="Offset_x" value="0"/>
+    <param name="Offset_y" value="0"/>
+    <param name="FrameRateEnable" value="false"/>
+    <param name="FrameRate" value="80"/>
+    <param name="ExposureTime" value="15000"/>
+    <param name="GainAuto" value="2"/>
+
+    <param name="BayerCvtQuality" value="1"/>
+    <node pkg="msg_hikcamera" type="msg_hikcamera_grb" name="msg_hikcamera_grb" output="screen">
+    </node>
+</launch>
