@@ -50,7 +50,9 @@ int main(int argc, char *argv[])
 
     sensor_msgs::ImagePtr imgMsg;
 
-    ros::Rate loop_rate(80);
+    int loopRate;
+    rosHandle.param("ros-image-publish-rate", loopRate, 100);
+    ros::Rate loop_rate(loopRate);
 
     while(ros::ok()){
 

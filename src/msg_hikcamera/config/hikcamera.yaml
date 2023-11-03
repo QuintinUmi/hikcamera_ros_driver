@@ -1,0 +1,11 @@
+
+width: 1280
+height: 1024
+Offset_x: 0
+Offset_y: 0
+FrameRateEnable: true
+FrameRate: 50
+ExposureTime: 15000
+GainAuto: 2
+
+BayerCvtQuality: 1
