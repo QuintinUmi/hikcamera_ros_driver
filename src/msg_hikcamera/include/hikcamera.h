@@ -20,11 +20,18 @@ class HikCamera
 
         CAMERA_INIT_INFO camera_init();
 
+        int setCameraParam();
+
+        CAMERA_INIT_INFO start_grabbing();
+
         sensor_msgs::ImagePtr grabbingOneFrame();
 
         int freeFrameCache();
 
         void stop_grabbing();
+
+
+        void printParam();
 
 
     private:
@@ -39,12 +46,14 @@ class HikCamera
         int nRet;
         int width;
         int height;
-        int offset_x;
-        int offset_y;
-        bool frameRateEnable;
-        int frameRate;
-        int exposureTime;
-        int gainAuto;
+        int Offset_x;
+        int Offset_y;
+        bool FrameRateEnable;
+        int FrameRate;
+        int ExposureTime;
+        int GainAuto;
+
+        int bayerCvtQuality;
 };
 
 

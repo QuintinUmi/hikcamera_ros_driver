@@ -26,14 +26,14 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
     camIndex = cameraIndex;
     nRet = MV_OK;
 
-    rosHandle.param("width", width, 1280);
-    rosHandle.param("height", height, 1024);
-    rosHandle.param("frameRateEnable", frameRateEnable, false);
-    rosHandle.param("frameRate", frameRate, 80);
-    rosHandle.param("exposureTime", exposureTime, 150000);
-    rosHandle.param("gainAuto", gainAuto, 2);
-    rosHandle.param("offset_x", offset_x, 0);
-    rosHandle.param("offset_y", offset_y, 0);
+    rosHandle.param("width", this->width, 1280);
+    rosHandle.param("height", this->height, 1024);
+    rosHandle.param("Offset_x", this->Offset_x, 0);
+    rosHandle.param("Offset_y", this->Offset_y, 0);
+    rosHandle.param("FrameRateEnable", this->FrameRateEnable, false);
+    rosHandle.param("FrameRate", this->FrameRate, 80);
+    rosHandle.param("ExposureTime", this->ExposureTime, 15000);
+    rosHandle.param("GainAuto", this->GainAuto, 2);
 
 
 }
@@ -157,6 +157,34 @@ CAMERA_INIT_INFO HikCamera::camera_init()
         printf("MV_CC_SetTriggerMode fail! nRet [%x]\n", nRet);
     }
 
+    cameraInitInfo.pUser = camHandle;
+
+    return cameraInitInfo;
+}
+
+int HikCamera::setCameraParam()
+{
+    int nRet = MV_OK;
+
+    nRet |= MV_CC_SetIntValue(camHandle, "width", this->width);
+    nRet |= MV_CC_SetIntValue(camHandle, "height", this->height);
+    nRet |= MV_CC_SetIntValue(camHandle, "Offset_x", this->Offset_x);
+    nRet |= MV_CC_SetIntValue(camHandle, "Offset_y", this->Offset_y);
+    nRet |= MV_CC_SetBoolValue(camHandle, "FrameRateEnable", this->FrameRateEnable);
+    nRet |= MV_CC_SetFloatValue(camHandle, "FrameRate", this->FrameRate);
+    nRet |= MV_CC_SetFloatValue(camHandle, "ExposureTime", this->ExposureTime);
+    nRet |= MV_CC_SetEnumValue(camHandle, "GainAuto", this->GainAuto);
+
+    nRet |= MV_CC_SetBayerCvtQuality(camHandle, this->bayerCvtQuality);
+
+    this->printParam();
+
+    return MV_OK;
+}
+
+CAMERA_INIT_INFO HikCamera::start_grabbing()
+{
+    int Ret = MV_OK;
     // 开始取流
     // start grab image
     nRet = MV_CC_StartGrabbing(camHandle);
@@ -183,11 +211,8 @@ CAMERA_INIT_INFO HikCamera::camera_init()
     //     return NULL;
     // }
 
-    MV_CC_SetBayerCvtQuality(camHandle, 1);
-
     unsigned int nDataSize = stParam.nCurValue;
 
-    cameraInitInfo.pUser = camHandle;
     cameraInitInfo.nDataSize = nDataSize;
     cameraInitInfo.stImageInfo.pBufAddr = pData;
     cameraInitInfo.stImageInfo.stFrameInfo = stFrameInfo;
@@ -293,14 +318,29 @@ void HikCamera::stop_grabbing()
     {
         printf("MV_CC_DestroyHandle fail! nRet [%x]\n", nRet);
     }
-    if (cameraInitInfo.pImageCache)
-    {
-        free(cameraInitInfo.pImageCache);	
-        cameraInitInfo.pImageCache = NULL;
-    }
-    if (cameraInitInfo.stImageInfo.pBufAddr)
-    {
-        free(cameraInitInfo.stImageInfo.pBufAddr);	
-        cameraInitInfo.stImageInfo.pBufAddr = NULL;
-    }
+    // if (cameraInitInfo.pImageCache)
+    // {
+    //     free(cameraInitInfo.pImageCache);	
+    //     cameraInitInfo.pImageCache = NULL;
+    // }
+    // if (cameraInitInfo.stImageInfo.pBufAddr)
+    // {
+    //     free(cameraInitInfo.stImageInfo.pBufAddr);	
+    //     cameraInitInfo.stImageInfo.pBufAddr = NULL;
+    // }
+}
+
+
+
+
+void HikCamera::printParam(){
+    printf("width: %d\n", this->width);
+    printf("height: %d\n", this->height);
+    printf("offset_x: %d\n", this->Offset_x);
+    printf("offset_y: %d\n", this->Offset_y);
+    printf("frameRateEnable: %d\n", this->FrameRateEnable);
+    printf("frameRate: %d\n", this->FrameRate);
+    printf("exposureTime: %d\n", this->ExposureTime);
+    printf("gainAuto: %d\n", this->GainAuto);
+
 }

@@ -128,6 +128,7 @@ include_directories(
   include /opt/MVS/include/
 )
 
+##For aarch64 system, please change the path to /opt/MVS/lib/aarch64/
 LINK_DIRECTORIES(
   /opt/MVS/lib/64/
 )
