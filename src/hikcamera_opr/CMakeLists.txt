@@ -154,6 +154,7 @@ target_link_libraries(msg_hikcamera_lib
 add_executable(msg_hikcamera_grab src/msg_hikcamera_grabbing.cpp)
 add_executable(img_hikcamera_grab_save src/img_hikcamera_grab_save.cpp)
 add_executable(key_input src/key_input.cpp)
+add_executable(img_show src/img_show.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -188,7 +189,7 @@ target_link_libraries(msg_hikcamera_grab
 
 target_link_libraries(img_hikcamera_grab_save
   ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
+  # ${OpenCV_LIBRARIES}
   msg_hikcamera_lib
   #  GCBase_gcc421_v3_0
   MvCameraControl
@@ -206,6 +207,10 @@ target_link_libraries(img_hikcamera_grab_save
 )
 
 target_link_libraries(key_input
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(img_show
   ${catkin_LIBRARIES}
 )
 

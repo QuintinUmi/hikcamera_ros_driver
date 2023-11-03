@@ -26,7 +26,7 @@
 
 bool g_exit = false;
 
-void KeyInput_CallBack(std_msgs::Int8::ConstPtr key_ascii, ros::NodeHandle rosHandle, cv::Mat* cvImage){
+void KeyInput_CallBack(std_msgs::Int8::ConstPtr key_ascii, ros::NodeHandle rosHandle, image_transport::Publisher* imgPub,cv::Mat* cvImage){
 
     cv::String filePath, fileName;
     rosHandle.param("image_file_save_path", filePath, std::string("~/"));
@@ -45,7 +45,10 @@ void KeyInput_CallBack(std_msgs::Int8::ConstPtr key_ascii, ros::NodeHandle rosHa
                 // cv::namedWindow("ShowSavedImage", cv::WINDOW_NORMAL);
                 // cv::imshow("ShowSavedImage", *cvImage);
                 // cv::waitKey(0); 
-                cv::imwrite(fileName, *cvImage);            
+                cv::Mat outputImg;
+                cv::cvtColor(*cvImage, outputImg, cv::COLOR_BGR2RGB);
+                cv::imwrite(fileName, outputImg); 
+                imgPub->publish(cv_bridge::CvImage(std_msgs::Header(), "rgb8", outputImg).toImageMsg());      
                 
                 break;
             }
@@ -73,10 +76,15 @@ int main(int argc, char *argv[])
 
     cv::String filePath, fileName;
 
+    image_transport::ImageTransport imgIt(rosHandle);
+    //topic name is /camera_front/image_color,the publish message queue size is 1.
+    image_transport::Publisher imgStreamPub = imgIt.advertise("/msg_camera/img_stream", 1);
+    image_transport::Publisher imgPub = imgIt.advertise("/msg_camera/img", 1);
+
     // ros::Publisher imgPub = rosHandle.advertise<sensor_msgs::Image>("/msg_camera/img", 100);
-    ros::Publisher msgPub = rosHandle.advertise<std_msgs::String>("/msg_camera/std_msgs", 100);
+    ros::Publisher msgPub = rosHandle.advertise<std_msgs::String>("/msg_hikcamera/std_msgs", 100);
     ros::Subscriber keySub = rosHandle.subscribe<std_msgs::Int8>("/msg_hikcamera/key_input", 10, 
-                                                                boost::bind(&KeyInput_CallBack, _1, rosHandle, &cvImage));
+                                                                boost::bind(&KeyInput_CallBack, _1, rosHandle, &imgPub, &cvImage));
 
     nRet = hikCamera.setCameraParam();
     if(MV_OK != nRet){
@@ -84,11 +92,6 @@ int main(int argc, char *argv[])
         getchar();
     }
     cameraInitInfo = hikCamera.start_grabbing();
-    
-    image_transport::ImageTransport imgIt(rosHandle);
-
-    //topic name is /camera_front/image_color,the publish message queue size is 1.
-    image_transport::Publisher imgPub = imgIt.advertise("/msg_camera/img", 1);
 
     void *pUser = cameraInitInfo.pUser;
     unsigned int nDataSize = cameraInitInfo.nDataSize;
@@ -103,7 +106,7 @@ int main(int argc, char *argv[])
         cvImage = hikCamera.grabbingOneFrame2Mat();
         imgMsg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImage).toImageMsg();
         
-        imgPub.publish(imgMsg);
+        imgStreamPub.publish(imgMsg);
         ros::spinOnce();
         
         hikCamera.freeFrameCache();
