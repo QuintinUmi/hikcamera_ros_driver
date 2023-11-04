@@ -27,9 +27,10 @@ bool n_exit = false;
 void ImageReceiveCallBack(sensor_msgs::ImageConstPtr pImg){
 
     cv_bridge::CvImageConstPtr cvImage = cv_bridge::toCvShare(pImg);
-    cv::Mat outputImg;
-    cv::cvtColor(cvImage->image, outputImg, cv::COLOR_BGR2RGB);
-    cv::imshow("ImageShow",  outputImg);
+    // cv::Mat outputImg;
+    // cv::cvtColor(cvImage->image, outputImg, cv::COLOR_BGR2RGB);
+    // cv::imshow("ImageShow",  outputImg);
+    cv::imshow("ImageShow",  cvImage->image);
 }
 
 void KeyInputCallBack(std_msgs::Int8::ConstPtr ascii){
