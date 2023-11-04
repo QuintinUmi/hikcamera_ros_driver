@@ -14,9 +14,11 @@
         "/home/quintinumi/git_package_src/wpr_simulation/src/wpb_home/wpb_home_tutorials/include/**",
         "/home/quintinumi/git_package_src/wpr_simulation/src/wpb_home/wpbh_local_planner/include/**",
         "/home/quintinumi/git_package_src/wpr_simulation/src/wpr_simulation/include/**",
+        "/usr/include/**",
         "/opt/MVS/include/**",
-        "/home/quintinumi/project/ws_hikcamera_ros_driver/src/hikcamera_ros_driver/src/hikcamera_opr/include/**",
-        "/usr/include/**"
+        "/usr/local/include/**",
+        "/usr/include/**",
+        "/home/quintinumi/project/ws_hikcamera_ros_driver/src/hikcamera_ros_driver/src/hikcamera_opr/include/**"
       ],
       "name": "ROS",
       "intelliSenseMode": "gcc-x64",
