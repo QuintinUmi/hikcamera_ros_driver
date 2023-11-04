@@ -38,7 +38,7 @@ void KeyInput_CallBack(std_msgs::Int8::ConstPtr key_ascii, ros::NodeHandle rosHa
         while(imgIndex <= MAX_IMAGE_INDEX){
             imgIndex ++;
             std::string tempIndex = std::to_string(imgIndex);
-            fileName = filePath + tempIndex + ".jpg";
+            fileName = filePath + tempIndex + ".png";
             if(cv::imread(fileName).empty() && !cvImage->empty()){
                 // std::cout << fileName <<"\n";
                 // getchar();
@@ -47,7 +47,7 @@ void KeyInput_CallBack(std_msgs::Int8::ConstPtr key_ascii, ros::NodeHandle rosHa
                 // cv::waitKey(0); 
                 cv::Mat outputImg;
                 cv::cvtColor(*cvImage, outputImg, cv::COLOR_BGR2RGB);
-                cv::imwrite(fileName, outputImg); 
+                cv::imwrite(fileName, outputImg, {cv::IMWRITE_PNG_COMPRESSION, 0}); 
                 imgPub->publish(cv_bridge::CvImage(std_msgs::Header(), "rgb8", outputImg).toImageMsg());      
                 
                 break;
