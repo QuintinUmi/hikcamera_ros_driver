@@ -1,0 +1,4 @@
+
+ros_image_publish_rate: 45
+
+image_file_save_path: "/home/quintinumi/图片/img/"

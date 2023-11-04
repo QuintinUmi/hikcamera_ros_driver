@@ -15,7 +15,7 @@
         "/home/quintinumi/git_package_src/wpr_simulation/src/wpb_home/wpbh_local_planner/include/**",
         "/home/quintinumi/git_package_src/wpr_simulation/src/wpr_simulation/include/**",
         "/opt/MVS/include/**",
-        "/home/quintinumi/project/ws_hikcamera_ros_driver/src/ws_hikcamera_ros_driver/src/msg_hikcamera/include",
+        "/home/quintinumi/project/ws_hikcamera_ros_driver/src/hikcamera_ros_driver/src/hikcamera_opr/include/**",
         "/usr/include/**"
       ],
       "name": "ROS",

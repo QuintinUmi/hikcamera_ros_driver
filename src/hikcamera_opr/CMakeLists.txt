@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(msg_hikcamera)
+project(hikcamera_opr)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -137,7 +137,7 @@ LINK_DIRECTORIES(
 add_library(msg_hikcamera_lib
   include/hikcamera.h
   include/hikcameraDataType.h
-  src/hikcamera.cpp
+  lib/hikcamera.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -151,7 +151,10 @@ target_link_libraries(msg_hikcamera_lib
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(msg_hikcamera_grb src/msg_hikcamera_grabbing.cpp)
+add_executable(msg_hikcamera_grab src/msg_hikcamera_grabbing.cpp)
+add_executable(img_hikcamera_grab_save src/img_hikcamera_grab_save.cpp)
+add_executable(key_input src/key_input.cpp)
+add_executable(img_show src/img_show.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -165,7 +168,7 @@ add_executable(msg_hikcamera_grb src/msg_hikcamera_grabbing.cpp)
 
 ## Specify libraries to link a library or executable target against
 
-target_link_libraries(msg_hikcamera_grb
+target_link_libraries(msg_hikcamera_grab
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
   msg_hikcamera_lib
@@ -182,6 +185,33 @@ target_link_libraries(msg_hikcamera_grb
   MediaProcess
   #  XmlParser_gcc421_v3_0
   X11
+)
+
+target_link_libraries(img_hikcamera_grab_save
+  ${catkin_LIBRARIES}
+  # ${OpenCV_LIBRARIES}
+  msg_hikcamera_lib
+  #  GCBase_gcc421_v3_0
+  MvCameraControl
+  #  GenApi_gcc421_v3_0
+  MVGigEVisionSDK
+  #  log4cpp_gcc421_v3_0
+  MVRender
+  #  Log_gcc421_v3_0
+  MvUsb3vTL
+  #  MathParser_gcc421_v3_0
+  #  NodeMapData_gcc421_v3_0
+  MediaProcess
+  #  XmlParser_gcc421_v3_0
+  X11
+)
+
+target_link_libraries(key_input
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(img_show
+  ${catkin_LIBRARIES}
 )
 
 

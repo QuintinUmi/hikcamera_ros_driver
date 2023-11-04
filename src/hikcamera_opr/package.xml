@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>msg_hikcamera</name>
+  <name>hikcamera_opr</name>
   <version>0.0.0</version>
-  <description>The msg_hikcamera package</description>
+  <description>The hikcamera_opr package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
