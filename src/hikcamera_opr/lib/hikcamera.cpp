@@ -359,7 +359,7 @@ sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS(bool undistortion)
         printf("Could not open or find the image\n");
     }
 
-    if(undistortion)
+    if(undistortion || this->undistortion)
         cv::undistort(cvImage, cvImage, this->cameraMatrix, this->disCoffes, this->newCameraMatrix);
 
     sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImage).toImageMsg();
@@ -434,7 +434,7 @@ cv::Mat HikCamera::grabbingOneFrame2Mat(bool undistortion)
         printf("Could not open or find the image\n");
     }
 
-    if(undistortion)
+    if(undistortion || this->undistortion)
         cv::undistort(cvImage, cvImage, this->cameraMatrix, this->disCoffes, this->newCameraMatrix);
 
     cameraInitInfo.pUser = pUser;
