@@ -11,3 +11,6 @@ GainAuto: 2
 BayerCvtQuality: 1
 
 isColor: True
+
+undistortion: true
+
