@@ -13,20 +13,36 @@ class HikCamera
 {
     public:
 
+        HikCamera();
         HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex);
+        HikCamera(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable = true, int FrameRate = 80, int ExposureTime = 5000, 
+                    int GainAuto = 2, int bayerCvtQuality = 1);
         ~HikCamera();
+
 
         bool PrintDeviceInfo(MV_CC_DEVICE_INFO* pstMVDevInfo);
 
+
         CAMERA_INIT_INFO camera_init();
 
+
         int setCameraParam();
+        int setCameraParam(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable = true, int FrameRate = 80, int ExposureTime = 5000, 
+                    int GainAuto = 2, int bayerCvtQuality = 1);
+
+
+        bool setCameraIntrinsics(ros::NodeHandle &nodeHandle);
+        bool setCameraIntrinsics(cv::String cameraIntrinsicsPath);
+        bool setCameraIntrinsics(cv::Mat cameraMatrix, cv::Mat disCoffes);
+
 
         CAMERA_INIT_INFO start_grabbing();
 
-        sensor_msgs::ImagePtr grabbingOneFrame2ROS();
+        sensor_msgs::ImagePtr grabbingOneFrame2ROS(bool undistortion = false);
 
-        cv::Mat grabbingOneFrame2Mat();
+        cv::Mat grabbingOneFrame2Mat(bool undistortion = false);
+
+        cv::Mat getNewCameraMatrix();
 
         int freeFrameCache();
 
@@ -55,6 +71,13 @@ class HikCamera
         int GainAuto;
 
         int bayerCvtQuality;
+
+        cv::String cameraIntrinsicsPath;
+        bool undistortion;
+
+        cv::Mat cameraMatrix;
+        cv::Mat disCoffes;
+        cv::Mat newCameraMatrix;
 };
 
 

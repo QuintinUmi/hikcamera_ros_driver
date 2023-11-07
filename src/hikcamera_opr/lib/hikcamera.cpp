@@ -19,7 +19,7 @@
 
 #include "hikcamera.h"
 
-
+HikCamera::HikCamera(){}
 HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
 {
     this->rosHandle = nodeHandle;
@@ -37,7 +37,30 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
 
     rosHandle.param("BayerCvtQuality", this->bayerCvtQuality, 1);
 
+    rosHandle.param("camera_instrinsics_path_yaml", this->cameraIntrinsicsPath, cv::String("~/caliberation_param.yaml"));
+    rosHandle.param("undistortion", this->undistortion, false);
+
+    if(this->undistortion)
+    {
+        cv::FileStorage fs(this->cameraIntrinsicsPath, cv::FileStorage::READ);
+        fs["cameraMatrix"] >> this->cameraMatrix;
+        fs["disCoffes"] >> this->disCoffes;
+    }
+
     // rosHandle.param("ros-publication-rate", this->rosPublicationRate, 100);
+}
+HikCamera::HikCamera(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable, int FrameRate, int ExposureTime, 
+                    int GainAuto, int bayerCvtQuality)
+{
+    this->width = width;
+    this->height = height;
+    this->Offset_x = Offset_x;
+    this->Offset_y = Offset_y;
+    this->FrameRateEnable = FrameRateEnable;
+    this->FrameRate = FrameRate;
+    this->ExposureTime = ExposureTime;
+    this->GainAuto = GainAuto;
+    this->bayerCvtQuality = bayerCvtQuality;
 }
 HikCamera::~HikCamera()
 {
@@ -164,6 +187,7 @@ CAMERA_INIT_INFO HikCamera::camera_init()
     return cameraInitInfo;
 }
 
+
 int HikCamera::setCameraParam()
 {
     int nRet = MV_OK;
@@ -183,6 +207,56 @@ int HikCamera::setCameraParam()
 
     return MV_OK;
 }
+int HikCamera::setCameraParam(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable, int FrameRate, int ExposureTime, 
+                                int GainAuto, int bayerCvtQuality)
+{
+    int nRet = MV_OK;
+
+    nRet |= MV_CC_SetIntValue(camHandle, "width", width);
+    nRet |= MV_CC_SetIntValue(camHandle, "height", height);
+    nRet |= MV_CC_SetIntValue(camHandle, "Offset_x", Offset_x);
+    nRet |= MV_CC_SetIntValue(camHandle, "Offset_y", Offset_y);
+    nRet |= MV_CC_SetBoolValue(camHandle, "FrameRateEnable", FrameRateEnable);
+    nRet |= MV_CC_SetFloatValue(camHandle, "FrameRate", FrameRate);
+    nRet |= MV_CC_SetFloatValue(camHandle, "ExposureTime", ExposureTime);
+    nRet |= MV_CC_SetEnumValue(camHandle, "GainAuto", GainAuto);
+
+    nRet |= MV_CC_SetBayerCvtQuality(camHandle, bayerCvtQuality);
+
+    this->printParam();
+
+    return MV_OK;
+}
+
+
+bool HikCamera::setCameraIntrinsics(ros::NodeHandle &nodeHandle)
+{
+    rosHandle.param("camera_matrix_path_yaml", this->cameraIntrinsicsPath, cv::String("~/caliberation_param.yaml"));
+    cv::FileStorage fs(this->cameraIntrinsicsPath, cv::FileStorage::READ);
+    
+    fs["cameraMatrix"] >> this->cameraMatrix;
+    fs["disCoffes"] >> this->disCoffes;
+
+    return true;
+}
+bool HikCamera::setCameraIntrinsics(cv::String cameraIntrinsicsPath)
+{
+    cv::FileStorage fs(this->cameraIntrinsicsPath, cv::FileStorage::READ);
+    
+    fs["cameraMatrix"] >> this->cameraMatrix;
+    fs["disCoffes"] >> this->disCoffes;
+
+    return true;
+}
+bool HikCamera::setCameraIntrinsics(cv::Mat cameraMatrix, cv::Mat disCoffes)
+{
+    this->cameraMatrix = cameraMatrix;
+    this->disCoffes = disCoffes;
+
+    return true;
+}
+
+
 
 CAMERA_INIT_INFO HikCamera::start_grabbing()
 {
@@ -224,7 +298,7 @@ CAMERA_INIT_INFO HikCamera::start_grabbing()
     return cameraInitInfo;
 }
 
-sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS()
+sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS(bool undistortion)
 {
     void* pUser = cameraInitInfo.pUser;
     MV_FRAME_OUT stImageInfo = cameraInitInfo.stImageInfo;
@@ -284,6 +358,10 @@ sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS()
     {
         printf("Could not open or find the image\n");
     }
+
+    if(undistortion)
+        cv::undistort(cvImage, cvImage, this->cameraMatrix, this->disCoffes, this->newCameraMatrix);
+
     sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImage).toImageMsg();
 
 
@@ -295,7 +373,7 @@ sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS()
     return pRosImg;
 }
 
-cv::Mat HikCamera::grabbingOneFrame2Mat()
+cv::Mat HikCamera::grabbingOneFrame2Mat(bool undistortion)
 {
     void* pUser = cameraInitInfo.pUser;
     MV_FRAME_OUT stImageInfo = cameraInitInfo.stImageInfo;
@@ -356,6 +434,8 @@ cv::Mat HikCamera::grabbingOneFrame2Mat()
         printf("Could not open or find the image\n");
     }
 
+    if(undistortion)
+        cv::undistort(cvImage, cvImage, this->cameraMatrix, this->disCoffes, this->newCameraMatrix);
 
     cameraInitInfo.pUser = pUser;
     cameraInitInfo.stImageInfo = stImageInfo;
@@ -363,6 +443,12 @@ cv::Mat HikCamera::grabbingOneFrame2Mat()
     cameraInitInfo.pImageCache = pDataForRGB;
 
     return cvImage;
+}
+
+
+cv::Mat HikCamera::getNewCameraMatrix()
+{
+    return this->newCameraMatrix;
 }
 
 
@@ -415,5 +501,9 @@ void HikCamera::printParam(){
     printf("frameRate: %d\n", this->FrameRate);
     printf("exposureTime: %d\n", this->ExposureTime);
     printf("gainAuto: %d\n", this->GainAuto);
+
+    printf("BayerCvtQuality: %d\n", this->bayerCvtQuality);
+
+    printf("undistortion: %d\n", this->undistortion);
 
 }
