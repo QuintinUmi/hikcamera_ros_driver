@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     ros::init(argc, argv, "msg_camera_grabbing");
     ros::NodeHandle rosHandle;
     HikCamera hikCamera(rosHandle, 0);
-
+    
     int nRet = MV_OK;
 
     cv::Mat cvImage;
