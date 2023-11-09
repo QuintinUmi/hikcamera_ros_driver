@@ -248,7 +248,7 @@ bool HikCamera::setCameraIntrinsics(ros::NodeHandle &nodeHandle)
     
     std::cout << this->cameraMatrix << std::endl << this->disCoffes << std::endl << this->imageSize << std::endl << this->alpha << std::endl;
     this->newCameraMatrix = cv::getOptimalNewCameraMatrix(this->cameraMatrix, this->disCoffes, this->imageSize, this->alpha);
-    cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_16SC2, this->map1, this->map2);
+    cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_32FC2, this->map1, this->map2);
 
     return true;
 }
@@ -264,7 +264,7 @@ bool HikCamera::setCameraIntrinsics(cv::String cameraIntrinsicsPath)
     fs["disCoffes"] >> this->disCoffes;
     
     this->newCameraMatrix = cv::getOptimalNewCameraMatrix(this->cameraMatrix, this->disCoffes, this->imageSize, this->alpha);
-    cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_16SC2, this->map1, this->map2);
+    cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_32FC2, this->map1, this->map2);
 
     std::cout << "newCameraMatrix:" << this->newCameraMatrix << std::endl;
     std::cout << "newImageSize:" << this->newImageSize << std::endl;
@@ -278,7 +278,7 @@ bool HikCamera::setCameraIntrinsics(int imageWidth, int imageHeight, cv::Mat cam
     this->disCoffes = disCoffes;
 
     this->newCameraMatrix = cv::getOptimalNewCameraMatrix(this->cameraMatrix, this->disCoffes, this->imageSize, this->alpha);
-    cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_16SC2, this->map1, this->map2);
+    cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_32FC2, this->map1, this->map2);
 
     std::cout << "newCameraMatrix:" << this->newCameraMatrix << std::endl;
     std::cout << "newImageSize:" << this->newImageSize << std::endl;
