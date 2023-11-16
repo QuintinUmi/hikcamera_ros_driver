@@ -28,3 +28,6 @@ hikcamera_opr
             key_input.cpp
             msg_hikcamera_grabbing.cpp
 ```
+
+
+The files in lib are the core code, and the code with text comments/descriptions are the hikvision camera API code/frame provided by the vendor.
