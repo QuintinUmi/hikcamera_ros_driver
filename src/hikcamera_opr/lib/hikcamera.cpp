@@ -19,6 +19,8 @@
 
 #include "hikcamera.h"
 
+/*--- The code with text comments/descriptions are the hikvision camera API code/frame provided by the vendor. ---*/
+
 HikCamera::HikCamera(){}
 HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
 {
