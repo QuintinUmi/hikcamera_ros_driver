@@ -12,7 +12,8 @@
 				"$catkin-gcc"
 			],
 			"group": "build",
-			"label": "catkin_make: build"
+			"label": "catkin_make: build",
 		}
 	]
+	
 }

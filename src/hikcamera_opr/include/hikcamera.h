@@ -33,7 +33,7 @@ class HikCamera
 
         bool setCameraIntrinsics(ros::NodeHandle &nodeHandle);
         bool setCameraIntrinsics(cv::String cameraIntrinsicsPath);
-        bool setCameraIntrinsics(int imageWidth, int imageHeight, cv::Mat cameraMatrix, cv::Mat disCoffes);
+        bool setCameraIntrinsics(int imageWidth, int imageHeight, cv::Mat cameraMatrix, cv::Mat disCoffes = cv::Mat());
 
 
         CAMERA_INIT_INFO start_grabbing();

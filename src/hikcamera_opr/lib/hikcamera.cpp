@@ -44,6 +44,10 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
     this->rosHandle.param("alpha", this->alpha, 0.0);
     this->rosHandle.param("interpolation", this->interpolation, 1);
     
+
+    this->setCameraIntrinsics(this->cameraIntrinsicsPath);
+    
+
     // if(this->undistortion)
     // {
     //     // cv::FileStorage fs(this->cameraIntrinsicsPath, cv::FileStorage::READ);
@@ -252,6 +256,8 @@ bool HikCamera::setCameraIntrinsics(ros::NodeHandle &nodeHandle)
     this->newCameraMatrix = cv::getOptimalNewCameraMatrix(this->cameraMatrix, this->disCoffes, this->imageSize, this->alpha);
     cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_32FC2, this->map1, this->map2);
 
+    fs.release();
+
     return true;
 }
 bool HikCamera::setCameraIntrinsics(cv::String cameraIntrinsicsPath)
@@ -265,11 +271,15 @@ bool HikCamera::setCameraIntrinsics(cv::String cameraIntrinsicsPath)
     fs["cameraMatrix"] >> this->cameraMatrix;
     fs["disCoffes"] >> this->disCoffes;
     
+    std::cout << cameraIntrinsicsPath << std::endl  << imageWidth << std::endl << imageHeight << std::endl << this->cameraMatrix << std::endl << this->disCoffes;
+    printf("test-------------------------------------------------------------\n");
     this->newCameraMatrix = cv::getOptimalNewCameraMatrix(this->cameraMatrix, this->disCoffes, this->imageSize, this->alpha);
     cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_32FC2, this->map1, this->map2);
 
     std::cout << "newCameraMatrix:" << this->newCameraMatrix << std::endl;
     std::cout << "newImageSize:" << this->newImageSize << std::endl;
+
+    fs.release();
 
     return true;
 }

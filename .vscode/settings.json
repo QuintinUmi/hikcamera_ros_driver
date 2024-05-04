@@ -61,6 +61,8 @@
         "__verbose_abort": "cpp",
         "ios": "cpp",
         "array": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "ctime": "cpp",
+        "unordered_map": "cpp"
     }
 }
