@@ -152,6 +152,7 @@ target_link_libraries(msg_hikcamera_lib
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(msg_hikcamera_grab src/msg_hikcamera_grabbing.cpp)
+add_executable(msg_hikcamera_info src/msg_hikcamera_info.cpp)
 add_executable(img_hikcamera_grab_save src/img_hikcamera_grab_save.cpp)
 add_executable(key_input src/key_input.cpp)
 add_executable(img_show src/img_show.cpp)
@@ -185,6 +186,10 @@ target_link_libraries(msg_hikcamera_grab
   MediaProcess
   #  XmlParser_gcc421_v3_0
   X11
+)
+
+target_link_libraries(msg_hikcamera_info
+  ${catkin_LIBRARIES}
 )
 
 target_link_libraries(img_hikcamera_grab_save
