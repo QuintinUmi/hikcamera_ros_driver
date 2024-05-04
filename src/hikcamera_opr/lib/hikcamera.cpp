@@ -43,14 +43,14 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
     this->rosHandle.param("undistortion", this->undistortion, false);
     this->rosHandle.param("alpha", this->alpha, 0.0);
     this->rosHandle.param("interpolation", this->interpolation, 1);
-
-    if(this->undistortion)
-    {
-        // cv::FileStorage fs(this->cameraIntrinsicsPath, cv::FileStorage::READ);
-        // fs["cameraMatrix"] >> this->cameraMatrix;
-        // fs["disCoffes"] >> this->disCoffes;
-        this->setCameraIntrinsics(this->rosHandle);
-    }
+    
+    // if(this->undistortion)
+    // {
+    //     // cv::FileStorage fs(this->cameraIntrinsicsPath, cv::FileStorage::READ);
+    //     // fs["cameraMatrix"] >> this->cameraMatrix;
+    //     // fs["disCoffes"] >> this->disCoffes;
+    //     this->setCameraIntrinsics(this->rosHandle);
+    // }
 
     // rosHandle.param("ros-publication-rate", this->rosPublicationRate, 100);
 }

@@ -12,7 +12,7 @@ BayerCvtQuality: 1
 
 isColor: True
 
-undistortion: true
+undistortion: false
 alpha: 1.0 # 1: Remain all pixels with black frame. 0: Loss of pixels and no black frame.
 interpolation: 1
 

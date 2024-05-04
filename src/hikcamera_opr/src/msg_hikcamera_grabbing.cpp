@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     ros::init(argc, argv, "msg_camera_grabbing");
     ros::NodeHandle rosHandle;
     HikCamera hikCamera(rosHandle, 0);
-
+    
     int nRet = MV_OK;
     sensor_msgs::Image imgOneFrame;
     CAMERA_INIT_INFO cameraInitInfo = hikCamera.camera_init();
@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
     int loopRate;
     rosHandle.param("ros_image_publish_rate", loopRate, 100);
     ros::Rate loop_rate(loopRate);
+    
     
 
     while(ros::ok()){
