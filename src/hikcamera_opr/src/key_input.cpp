@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     ros::init(argc, argv, "key_input");
     ros::NodeHandle rosHandle;
 
-    ros::Publisher key_ascii_pub = rosHandle.advertise<std_msgs::Int8>("/msg_hikcamera/key_input", 1);
+    ros::Publisher key_ascii_pub = rosHandle.advertise<std_msgs::Int8>("/hikcamera/key_input", 1);
 
     ros::Rate loop_rate(10);
 
@@ -23,9 +23,12 @@ int main(int argc, char *argv[])
             // printf("\n----------------------------------------------------------------------------------\n");
             char c = fgetc(stdin);
             std_msgs::Int8 ascii;
+	    std_msgs::Int8 ascii0;
             ascii.data = int(c);
+	    ascii0.data = int(0);
             key_ascii_pub.publish(ascii);
-        }
+	    // key_ascii_pub.publish(ascii0);
+	}
         loop_rate.sleep();
     }
 

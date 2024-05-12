@@ -78,12 +78,12 @@ int main(int argc, char *argv[])
 
     image_transport::ImageTransport imgIt(rosHandle);
     //topic name is /camera_front/image_color,the publish message queue size is 1.
-    image_transport::Publisher imgStreamPub = imgIt.advertise("/msg_camera/img_stream", 1);
-    image_transport::Publisher imgPub = imgIt.advertise("/msg_camera/img", 1);
+    image_transport::Publisher imgStreamPub = imgIt.advertise("/hikcamera/img_stream", 1);
+    image_transport::Publisher imgPub = imgIt.advertise("/hikcamera/img", 1);
 
-    // ros::Publisher imgPub = rosHandle.advertise<sensor_msgs::Image>("/msg_camera/img", 100);
-    ros::Publisher msgPub = rosHandle.advertise<std_msgs::String>("/msg_hikcamera/std_msgs", 100);
-    ros::Subscriber keySub = rosHandle.subscribe<std_msgs::Int8>("/msg_hikcamera/key_input", 10, 
+    // ros::Publisher imgPub = rosHandle.advertise<sensor_msgs::Image>("/hikcamera/img", 100);
+    ros::Publisher msgPub = rosHandle.advertise<std_msgs::String>("/hikcamera/std_msgs", 100);
+    ros::Subscriber keySub = rosHandle.subscribe<std_msgs::Int8>("/hikcamera/key_input", 10, 
                                                                 boost::bind(&KeyInput_CallBack, _1, rosHandle, &imgPub, &cvImage));
 
     nRet = hikCamera.setCameraParam();
@@ -103,10 +103,6 @@ int main(int argc, char *argv[])
     // ros::Rate loop_rate(loopRate);
     while(ros::ok()){
 
-        cvImage = hikCamera.grabbingOneFrame2Mat();
-        imgMsg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImage).toImageMsg();
-        
-        imgStreamPub.publish(imgMsg);
         ros::spinOnce();
         
         hikCamera.freeFrameCache();
@@ -115,7 +111,10 @@ int main(int argc, char *argv[])
             break;
         }
 
+        cvImage = hikCamera.grabbingOneFrame2Mat();
+        imgMsg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImage).toImageMsg();
         
+        imgStreamPub.publish(imgMsg);        
         // loop_rate.sleep();
     }
 

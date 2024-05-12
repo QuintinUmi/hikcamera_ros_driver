@@ -46,8 +46,8 @@ int main(int argc, char *argv[])
     ros::init(argc, argv, "img_show");
     ros::NodeHandle rosHandle;
 
-    ros::Subscriber imgSub = rosHandle.subscribe("/msg_camera/img", 1, ImageReceiveCallBack);
-    ros::Subscriber key_input = rosHandle.subscribe("/msg_camera/key_input", 10, KeyInputCallBack);
+    ros::Subscriber imgSub = rosHandle.subscribe("/hikcamera/img", 1, ImageReceiveCallBack);
+    ros::Subscriber key_input = rosHandle.subscribe("/hikcamera/key_input", 10, KeyInputCallBack);
 
     cv::namedWindow("ImageShow", cv::WINDOW_NORMAL);
 

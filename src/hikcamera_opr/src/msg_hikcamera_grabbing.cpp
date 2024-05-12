@@ -31,10 +31,10 @@ int main(int argc, char *argv[])
     CAMERA_INIT_INFO cameraInitInfo = hikCamera.camera_init();
 
     image_transport::ImageTransport imgIt(rosHandle);
-    image_transport::Publisher imgPub = imgIt.advertise("/msg_camera/img_stream", 1);
+    image_transport::Publisher imgPub = imgIt.advertise("/hikcamera/img_stream", 1);
 
-    // ros::Publisher imgPub = rosHandle.advertise<sensor_msgs::Image>("/msg_camera/img", 100);
-    ros::Publisher msgPub = rosHandle.advertise<std_msgs::String>("/msg_camera/std_msgs", 100);
+    // ros::Publisher imgPub = rosHandle.advertise<sensor_msgs::Image>("/hikcamera/img", 100);
+    ros::Publisher msgPub = rosHandle.advertise<std_msgs::String>("/hikcamera/std_msgs", 100);
 
     nRet = hikCamera.setCameraParam();
     if(MV_OK != nRet){
@@ -57,12 +57,12 @@ int main(int argc, char *argv[])
 
     while(ros::ok()){
 
+        ros::spinOnce();
         imgMsg = hikCamera.grabbingOneFrame2ROS();
         hikCamera.freeFrameCache();
         
-
         imgPub.publish(imgMsg);
-        ros::spinOnce();
+        
         loop_rate.sleep();
     }
 
