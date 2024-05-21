@@ -112,6 +112,10 @@ int main(int argc, char *argv[])
         }
 
         cvImage = hikCamera.grabbingOneFrame2Mat();
+        if(cvImage.empty())
+        {
+        	continue;
+        }
         imgMsg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImage).toImageMsg();
         
         imgStreamPub.publish(imgMsg);        

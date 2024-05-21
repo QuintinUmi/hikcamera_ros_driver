@@ -59,6 +59,10 @@ int main(int argc, char *argv[])
 
         ros::spinOnce();
         imgMsg = hikCamera.grabbingOneFrame2ROS();
+        if(!imgMsg)
+        {
+        	continue;
+        }
         hikCamera.freeFrameCache();
         
         imgPub.publish(imgMsg);

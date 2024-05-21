@@ -36,6 +36,7 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
     this->rosHandle.param("FrameRate", this->FrameRate, 80);
     this->rosHandle.param("ExposureTime", this->ExposureTime, 15000);
     this->rosHandle.param("GainAuto", this->GainAuto, 2);
+    this->rosHandle.param("Gain", this->Gain, (float)100.0);
 
     this->rosHandle.param("BayerCvtQuality", this->bayerCvtQuality, 1);
 
@@ -211,6 +212,8 @@ int HikCamera::setCameraParam()
     nRet |= MV_CC_SetFloatValue(camHandle, "FrameRate", this->FrameRate);
     nRet |= MV_CC_SetFloatValue(camHandle, "ExposureTime", this->ExposureTime);
     nRet |= MV_CC_SetEnumValue(camHandle, "GainAuto", this->GainAuto);
+    nRet |= MV_CC_SetFloatValue(camHandle, "Gain", this->Gain);
+    
 
     nRet |= MV_CC_SetBayerCvtQuality(camHandle, this->bayerCvtQuality);
 
@@ -361,6 +364,7 @@ sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS()
     else
     {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
+        return sensor_msgs::ImagePtr();
     }
     if(NULL != stImageInfo.pBufAddr)
     {
@@ -442,6 +446,7 @@ sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS(bool undistortion, int int
     else
     {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
+        return sensor_msgs::ImagePtr();
     }
     if(NULL != stImageInfo.pBufAddr)
     {
@@ -523,6 +528,7 @@ cv::Mat HikCamera::grabbingOneFrame2Mat()
     else
     {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
+        return cv::Mat();
     }
     if(NULL != stImageInfo.pBufAddr)
     {
@@ -600,6 +606,7 @@ cv::Mat HikCamera::grabbingOneFrame2Mat(bool undistortion, int interpolation)
     else
     {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
+        return cv::Mat();
     }
     if(NULL != stImageInfo.pBufAddr)
     {

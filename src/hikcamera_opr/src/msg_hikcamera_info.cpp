@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
     int nRet = MV_OK;
 
     sensor_msgs::CameraInfo cameraInfo;
-    ros::Publisher infoPub = rosHandle.advertise<sensor_msgs::CameraInfo>("/msg_camera/info", 1000);
+    ros::Publisher infoPub = rosHandle.advertise<sensor_msgs::CameraInfo>("/hikcamera/info", 1000);
 
     int loopRate = 10;
     ros::Rate loop_rate(loopRate);

@@ -5,10 +5,12 @@ Offset_x: 0
 Offset_y: 0
 FrameRateEnable: true
 FrameRate: 50
-ExposureTime: 15000
-GainAuto: 2
+ExposureTime: 50000
+GainAuto: 0 # 0: off, 1: once, 2: Continuous
+Gain: 10000.0
 
-BayerCvtQuality: 1
+
+BayerCvtQuality: 0
 
 isColor: True
 

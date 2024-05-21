@@ -70,6 +70,7 @@ class HikCamera
         bool FrameRateEnable;
         int FrameRate;
         int ExposureTime;
+        float Gain;
         int GainAuto;
 
         int bayerCvtQuality;
