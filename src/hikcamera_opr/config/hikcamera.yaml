@@ -6,7 +6,7 @@ Offset_y: 0
 FrameRateEnable: true
 FrameRate: 50
 ExposureTime: 30000
-GainAuto: 0 # 0: off, 1: once, 2: Continuous
+GainAuto: 1 # 0: off, 1: once, 2: Continuous
 Gain: 10000.0
 
 

@@ -1,6 +1,6 @@
 
 ros_image_publish_rate: 45
 
-image_file_save_path: "/home/quintinumi/图片/img/"
+image_file_save_path: "/home/quintinumi/project/camera_calibration_img/"
 
 camera_instrinsics_path_yaml: "/home/quintinumi/project/ws_camera_calibration/src/camera_calibration/src/camera_calibration_pkg/config/calibration_param.yaml"
