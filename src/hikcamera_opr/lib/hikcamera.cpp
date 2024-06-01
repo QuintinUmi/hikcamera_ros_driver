@@ -6,6 +6,10 @@
 #include <pthread.h>
 #include <iostream>
 
+#include <fcntl.h>
+#include <sys/ipc.h>
+#include <sys/mman.h>
+
 #include <std_msgs/String.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
@@ -28,17 +32,35 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
     this->camIndex = cameraIndex;
     this->nRet = MV_OK;
     
-    this->rosHandle.param("width", this->width, 1280);
-    this->rosHandle.param("height", this->height, 1024);
-    this->rosHandle.param("Offset_x", this->Offset_x, 0);
-    this->rosHandle.param("Offset_y", this->Offset_y, 0);
-    this->rosHandle.param("FrameRateEnable", this->FrameRateEnable, false);
-    this->rosHandle.param("FrameRate", this->FrameRate, 80);
-    this->rosHandle.param("ExposureTime", this->ExposureTime, 15000);
-    this->rosHandle.param("GainAuto", this->GainAuto, 2);
-    this->rosHandle.param("Gain", this->Gain, (float)100.0);
+    this->rosHandle.param("width", this->hikcamera_param.width, 1280);
+    this->rosHandle.param("height", this->hikcamera_param.height, 1024);
+    this->rosHandle.param("Offset_x", this->hikcamera_param.Offset_x, 0);
+    this->rosHandle.param("Offset_y", this->hikcamera_param.Offset_y, 0);
+    this->rosHandle.param("FrameRateEnable", this->hikcamera_param.FrameRateEnable, false);
+    this->rosHandle.param("FrameRate", this->hikcamera_param.FrameRate, 80);
 
-    this->rosHandle.param("BayerCvtQuality", this->bayerCvtQuality, 1);
+
+    this->rosHandle.param("TriggerMode", this->hikcamera_param.TriggerMode, 0);
+    this->rosHandle.param("LineSelector", this->hikcamera_param.LineSelector, 0);
+    this->rosHandle.param("LineMode", this->hikcamera_param.LineMode, 0);
+    this->rosHandle.param("LineSource", this->hikcamera_param.LineSource, 5);
+
+    this->rosHandle.param("StrobeEnable", this->hikcamera_param.StrobeEnable, true);
+    this->rosHandle.param("StrobeLineDelay", this->hikcamera_param.StrobeLineDelay, 0);
+    this->rosHandle.param("StrobeLinePreDelay", this->hikcamera_param.StrobeLineDelay, 0);
+
+
+    this->rosHandle.param("ExposureAuto", this->hikcamera_param.ExposureAuto, 0);
+    this->rosHandle.param("ExposureTimeUpper", this->hikcamera_param.ExposureTimeUpper, 35000);
+    this->rosHandle.param("ExposureTimeLower", this->hikcamera_param.ExposureTimeLower, 25000);
+    this->rosHandle.param("ExposureTime", this->hikcamera_param.ExposureTime, 30000);
+
+    this->rosHandle.param("GainAuto", this->hikcamera_param.GainAuto, 0);
+    this->rosHandle.param("Gain", this->hikcamera_param.Gain, (float)15.0);
+
+
+    this->rosHandle.param("BayerCvtQuality", this->hikcamera_param.bayerCvtQuality, 1);
+
 
     this->rosHandle.param("camera_instrinsics_path_yaml", this->cameraIntrinsicsPath, cv::String("~/caliberation_param.yaml"));
     this->rosHandle.param("undistortion", this->undistortion, false);
@@ -62,15 +84,15 @@ HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
 HikCamera::HikCamera(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable, int FrameRate, int ExposureTime, 
                     int GainAuto, int bayerCvtQuality, bool undistortion, double alpha)
 {
-    this->width = width;
-    this->height = height;
-    this->Offset_x = Offset_x;
-    this->Offset_y = Offset_y;
-    this->FrameRateEnable = FrameRateEnable;
-    this->FrameRate = FrameRate;
-    this->ExposureTime = ExposureTime;
-    this->GainAuto = GainAuto;
-    this->bayerCvtQuality = bayerCvtQuality;
+    this->hikcamera_param.width = width;
+    this->hikcamera_param.height = height;
+    this->hikcamera_param.Offset_x = Offset_x;
+    this->hikcamera_param.Offset_y = Offset_y;
+    this->hikcamera_param.FrameRateEnable = FrameRateEnable;
+    this->hikcamera_param.FrameRate = FrameRate;
+    this->hikcamera_param.ExposureTime = ExposureTime;
+    this->hikcamera_param.GainAuto = GainAuto;
+    this->hikcamera_param.bayerCvtQuality = bayerCvtQuality;
     this->undistortion = undistortion;
     this->alpha = alpha;
 }
@@ -111,7 +133,7 @@ bool HikCamera::PrintDeviceInfo(MV_CC_DEVICE_INFO* pstMVDevInfo)
     return true;
 }
 
-CAMERA_INIT_INFO HikCamera::camera_init()
+CAMERA_INFO HikCamera::camera_init()
 {
     MV_CC_DEVICE_INFO_LIST stDeviceList;
     memset(&stDeviceList, 0, sizeof(MV_CC_DEVICE_INFO_LIST));
@@ -194,9 +216,9 @@ CAMERA_INIT_INFO HikCamera::camera_init()
         printf("MV_CC_SetTriggerMode fail! nRet [%x]\n", nRet);
     }
 
-    cameraInitInfo.pUser = camHandle;
+    cameraInfo.pUser = camHandle;
 
-    return cameraInitInfo;
+    return cameraInfo;
 }
 
 
@@ -204,22 +226,162 @@ int HikCamera::setCameraParam()
 {
     int nRet = MV_OK;
 
-    nRet |= MV_CC_SetIntValue(camHandle, "width", this->width);
-    nRet |= MV_CC_SetIntValue(camHandle, "height", this->height);
-    nRet |= MV_CC_SetIntValue(camHandle, "Offset_x", this->Offset_x);
-    nRet |= MV_CC_SetIntValue(camHandle, "Offset_y", this->Offset_y);
-    nRet |= MV_CC_SetBoolValue(camHandle, "FrameRateEnable", this->FrameRateEnable);
-    nRet |= MV_CC_SetFloatValue(camHandle, "FrameRate", this->FrameRate);
-    nRet |= MV_CC_SetFloatValue(camHandle, "ExposureTime", this->ExposureTime);
-    nRet |= MV_CC_SetEnumValue(camHandle, "GainAuto", this->GainAuto);
-    nRet |= MV_CC_SetFloatValue(camHandle, "Gain", this->Gain);
+    // 设置 Width
+    nRet = MV_CC_SetIntValue(camHandle, "Width", this->hikcamera_param.width);
+    if (nRet != MV_OK) {
+        printf("Error setting Width: %d\n", nRet);
+        return nRet;
+    }
+
+    // 设置 Height
+    nRet = MV_CC_SetIntValue(camHandle, "Height", this->hikcamera_param.height);
+    if (nRet != MV_OK) {
+        printf("Error setting Height: %d\n", nRet);
+        return nRet;
+    }
+
+    // 设置 OffsetX
+    nRet = MV_CC_SetIntValue(camHandle, "OffsetX", this->hikcamera_param.Offset_x);
+    if (nRet != MV_OK) {
+        printf("Error setting OffsetX: %d\n", nRet);
+        return nRet;
+    }
+
+    // 设置 OffsetY
+    nRet = MV_CC_SetIntValue(camHandle, "OffsetY", this->hikcamera_param.Offset_y);
+    if (nRet != MV_OK) {
+        printf("Error setting OffsetY: %d\n", nRet);
+        return nRet;
+    }
+
+
+    // 设置 FrameRateEnable
+    nRet = MV_CC_SetBoolValue(camHandle, "AcquisitionFrameRateEnable", this->hikcamera_param.FrameRateEnable);
+    if (nRet != MV_OK) {
+        printf("Error setting FrameRateEnable: %d\n", nRet);
+        return nRet;
+    }
+
+    // 设置 FrameRate
+    nRet = MV_CC_SetFloatValue(camHandle, "AcquisitionFrameRate", this->hikcamera_param.FrameRate);
+    if (nRet != MV_OK) {
+        printf("Error setting FrameRate: %d\n", nRet);
+        return nRet;
+    }
+
+
+
+    // 设置 TriggerMode
+    nRet = MV_CC_SetEnumValue(camHandle, "TriggerMode", this->hikcamera_param.TriggerMode);
+    if (nRet != MV_OK) {
+        printf("Error setting TriggerMode: %d\n", nRet);
+        return nRet;
+    }
+
+    if(this->hikcamera_param.TriggerMode == 1)
+    {
+        // 设置 LineSelector
+        nRet = MV_CC_SetEnumValue(camHandle, "LineSelector", this->hikcamera_param.LineSelector);
+        if (nRet != MV_OK) {
+            printf("Error setting LineSelector: %d\n", nRet);
+            return nRet;
+        }
+
+        if(this->hikcamera_param.LineSelector == 2)
+        {
+            nRet = MV_CC_SetEnumValue(camHandle, "LineMode", this->hikcamera_param.LineMode);//仅line2需要设置
+            if(nRet != MV_OK)
+            {
+                printf("Error setting LineMode: %d\n", nRet);
+                return nRet;
+            }
+        }
+        
+        nRet = MV_CC_SetEnumValue(camHandle, "LineSource", this->hikcamera_param.LineSource);
+        if(nRet != MV_OK)
+        {
+            printf("Error setting LineSource: %d\n", nRet);
+            return nRet;
+        }
+
+        // 设置 StrobeLineDelay
+        nRet = MV_CC_SetIntValue(camHandle, "LineDelay", this->hikcamera_param.StrobeLineDelay);
+        if (nRet != MV_OK) {
+            printf("Error setting StrobeLineDelay: %d\n", nRet);
+            return nRet;
+        }
+
+        // 设置 StrobeLinePreDelay
+        nRet = MV_CC_SetIntValue(camHandle, "LinePreDelay", this->hikcamera_param.StrobeLinePreDelay);
+        if (nRet != MV_OK) {
+            printf("Error setting StrobeLinePreDelay: %d\n", nRet);
+            return nRet;
+        }
+
+        // 设置 StrobeEnable
+        nRet = MV_CC_SetBoolValue(camHandle, "StrobeEnable", this->hikcamera_param.StrobeEnable);
+        if (nRet != MV_OK) {
+            printf("Error setting StrobeEnable: %d\n", nRet);
+            return nRet;
+        }
+    }
     
 
-    nRet |= MV_CC_SetBayerCvtQuality(camHandle, this->bayerCvtQuality);
+
+    // 设置 ExposureAuto
+    nRet = MV_CC_SetEnumValue(camHandle, "ExposureAuto", this->hikcamera_param.ExposureAuto);
+    if (nRet != MV_OK) {
+        printf("Error setting ExposureAuto: %d\n", nRet);
+        return nRet;
+    }
+
+    if(this->hikcamera_param.ExposureAuto != 0)
+    {
+        // 设置 ExposureTimeUpper
+        nRet = MV_CC_SetIntValue(camHandle, "ExposureTimeUpper", this->hikcamera_param.ExposureTimeUpper);
+        if (nRet != MV_OK) {
+            printf("Error setting ExposureTimeUpper: %d\n", nRet);
+            return nRet;
+        }
+
+        // 设置 ExposureTimeLower
+        nRet = MV_CC_SetIntValue(camHandle, "ExposureTimeLower", this->hikcamera_param.ExposureTimeLower);
+        if (nRet != MV_OK) {
+            printf("Error setting ExposureTimeLower: %d\n", nRet);
+            return nRet;
+        }
+
+        // 设置 ExposureTime
+        nRet = MV_CC_SetFloatValue(camHandle, "ExposureTime", this->hikcamera_param.ExposureTime);
+        if (nRet != MV_OK) {
+            printf("Error setting ExposureTime: %d\n", nRet);
+            return nRet;
+        }
+
+    }
+
+
+    // 设置 GainAuto
+    nRet = MV_CC_SetEnumValue(camHandle, "GainAuto", this->hikcamera_param.GainAuto);
+    if (nRet != MV_OK) {
+        printf("Error setting GainAuto: %d\n", nRet);
+        return nRet;
+    }
+
+    // 设置 Gain
+    nRet = MV_CC_SetFloatValue(camHandle, "Gain", this->hikcamera_param.Gain);
+    if (nRet != MV_OK) {
+        printf("Error setting Gain: %d\n", nRet);
+        return nRet;
+    }
+
+
+    nRet |= MV_CC_SetBayerCvtQuality(camHandle, hikcamera_param.bayerCvtQuality);
+
 
     this->printParam();
 
-    return MV_OK;
+    return MV_OK;  
 }
 int HikCamera::setCameraParam(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable, int FrameRate, int ExposureTime, 
                                 int GainAuto, int bayerCvtQuality)
@@ -274,12 +436,12 @@ bool HikCamera::setCameraIntrinsics(cv::String cameraIntrinsicsPath)
     fs["cameraMatrix"] >> this->cameraMatrix;
     fs["disCoffes"] >> this->disCoffes;
     
-    std::cout << cameraIntrinsicsPath << std::endl  << imageWidth << std::endl << imageHeight << std::endl << this->cameraMatrix << std::endl << this->disCoffes;
+    std::cout << cameraIntrinsicsPath << std::endl  << imageWidth << std::endl << imageHeight << std::endl << this->cameraMatrix << std::endl << this->disCoffes << std::endl;
     printf("test-------------------------------------------------------------\n");
     this->newCameraMatrix = cv::getOptimalNewCameraMatrix(this->cameraMatrix, this->disCoffes, this->imageSize, this->alpha);
     cv::initUndistortRectifyMap(this->cameraMatrix, this->disCoffes, cv::Mat(), this->newCameraMatrix, this->imageSize, CV_32FC2, this->map1, this->map2);
 
-    std::cout << "newCameraMatrix:" << this->newCameraMatrix << std::endl;
+    std::cout << "newCameraMatrix: \n" << this->newCameraMatrix << std::endl;
     std::cout << "newImageSize:" << this->newImageSize << std::endl;
 
     fs.release();
@@ -303,7 +465,8 @@ bool HikCamera::setCameraIntrinsics(int imageWidth, int imageHeight, cv::Mat cam
 
 
 
-CAMERA_INIT_INFO HikCamera::start_grab()
+
+CAMERA_INFO HikCamera::start_grab()
 {
     int Ret = MV_OK;
     // 开始取流
@@ -334,175 +497,220 @@ CAMERA_INIT_INFO HikCamera::start_grab()
 
     unsigned int nDataSize = stParam.nCurValue;
 
-    cameraInitInfo.nDataSize = nDataSize;
-    cameraInitInfo.stImageInfo.pBufAddr = pData;
-    cameraInitInfo.stImageInfo.stFrameInfo = stFrameInfo;
+    cameraInfo.nDataSize = nDataSize;
+    cameraInfo.stImageInfo.pBufAddr = pData;
+    cameraInfo.stImageInfo.stFrameInfo = stFrameInfo;
 
     // printf("%p\n", handle);
 
-    return cameraInitInfo;
+    return cameraInfo;
 }
 
 
-sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS()
+sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS_sync(_GPRMC_TIME_STAMP_ *GPRMC_ptr)
 {
+    void* pUser = cameraInfo.pUser;
 
-    void* pUser = cameraInitInfo.pUser;
-    MV_FRAME_OUT stImageInfo = cameraInitInfo.stImageInfo;
-    unsigned int nDataSize = cameraInitInfo.nDataSize;
-
-    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
-    // nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
-    // nRet = MV_CC_GetImageForRGB(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
-    if (nRet == MV_OK)
-    {
-        printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
-        stImageInfo.stFrameInfo.nWidth, stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nFrameNum, stImageInfo.stFrameInfo.nFrameLen);
-        
-        // for(int i = 0; i <= stImageInfo.stFrameInfo.nFrameLen; i++) printf("pData[%d] = %d\n", i, stImageInfo.pBufAddr[i]);
+    // Get payload size
+    MVCC_INTVALUE stParam;
+    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
+    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
+    if (MV_OK != nRet) {
+        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
+        return sensor_msgs::ImagePtr(); 
     }
-    else
-    {
+
+    MV_FRAME_OUT stImageInfo = {0};
+    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
+    if (nRet != MV_OK) {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
-        return sensor_msgs::ImagePtr();
+        return sensor_msgs::ImagePtr(); 
     }
-    if(NULL != stImageInfo.pBufAddr)
-    {
+
+    auto time_pc_clk = std::chrono::high_resolution_clock::now();
+    int64_t b = GPRMC_ptr->low;
+    // printf("b:%d\n", b);
+    double time_pc = b / 1000000000.0;
+    ros::Time rcv_time = ros::Time(time_pc);
+
+    // Log retrieved frame information
+    std::string debug_msg;
+    debug_msg = "GetOneFrame,nFrameNum[" +
+                  std::to_string(stImageInfo.stFrameInfo.nFrameNum) + "], FrameTime: [" +
+                  std::to_string(rcv_time.toSec()) + "], Width: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nWidth) + "], Height: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nHeight) + "], nFrameLen: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nFrameLen);
+      ROS_INFO_STREAM(debug_msg.c_str());
+
+
+    if (stImageInfo.pBufAddr != NULL) {
         nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
-        if(nRet != MV_OK)
-        {
+        if (nRet != MV_OK) {
             printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
         }
     }
 
+    // Convert Bayer GB format to BGR format
+    cv::Mat imgBayerGB(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC1, stImageInfo.pBufAddr);
+    cv::Mat imgBGR;
+    cv::cvtColor(imgBayerGB, imgBGR, cv::COLOR_BayerGB2BGR);
 
-    unsigned char *pDataForRGB = NULL;
-
-    pDataForRGB = (unsigned char*)malloc(stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight * 4 + 2048);
-    if (NULL == pDataForRGB)
-    {
-        printf("Error1");
-    }
-
-    MV_CC_PIXEL_CONVERT_PARAM stConvertParam = {0};
-    stConvertParam.nWidth = stImageInfo.stFrameInfo.nWidth;
-    stConvertParam.nHeight = stImageInfo.stFrameInfo.nHeight;
-    stConvertParam.pSrcData = stImageInfo.pBufAddr;
-    stConvertParam.nSrcDataLen = stImageInfo.stFrameInfo.nFrameLen;
-    stConvertParam.enSrcPixelType = stImageInfo.stFrameInfo.enPixelType;
-    stConvertParam.enDstPixelType = PixelType_Gvsp_RGB8_Packed;
-    stConvertParam.pDstBuffer = pDataForRGB;
-    stConvertParam.nDstBufferSize = stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight *  4 + 2048;
-
-    nRet = MV_CC_ConvertPixelType(pUser, &stConvertParam);
-    if (MV_OK != nRet)
-    {
-        printf("MV_CC_ConvertPixelType fail! nRet [%x]\n", nRet);
-    }
-
-    cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, pDataForRGB);
-    // cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, stImageInfo.pBufAddr);
-    if (cvImage.empty())  
-    {
-        printf("Could not open or find the image\n");
-    }
-
+    // Apply undistortion if required
     cv::Mat cvImageOutput;
-    if(this->undistortion)
-        cv::remap(cvImage, cvImageOutput, this->map1, this->map2, this->interpolation);
-    else
-        cvImageOutput = cvImage;
-    
+    if (this->undistortion) {
+        cv::remap(imgBGR, cvImageOutput, this->map1, this->map2, this->interpolation);
+    } else {
+        cvImageOutput = imgBGR;
+    }
 
+    // Convert OpenCV image to ROS message
     sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImageOutput).toImageMsg();
+    pRosImg->header.stamp = rcv_time;
 
+    // Update camera initialization info
+    cameraInfo.pUser = pUser;
+    cameraInfo.stImageInfo = stImageInfo;
+    cameraInfo.pImageCache = stImageInfo.pBufAddr;
 
-    cameraInitInfo.pUser = pUser;
-    cameraInitInfo.stImageInfo = stImageInfo;
-    // cameraInitInfo->pIamgeCache = pDataForRGB;
-    cameraInitInfo.pImageCache = pDataForRGB;
+    return pRosImg;
+}
+sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS()
+{
+    void* pUser = cameraInfo.pUser;
+
+    // Get payload size
+    MVCC_INTVALUE stParam;
+    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
+    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
+    if (MV_OK != nRet) {
+        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
+        return sensor_msgs::ImagePtr(); 
+    }
+
+    MV_FRAME_OUT stImageInfo = {0};
+    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
+    if (nRet != MV_OK) {
+        printf("Get Image fail! nRet [0x%x]\n", nRet);
+        return sensor_msgs::ImagePtr(); 
+    }
+
+    auto time_pc_clk = std::chrono::high_resolution_clock::now();
+    double time_pc =
+        uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(time_pc_clk.time_since_epoch()).count())
+        / 1000000000.0;
+    ros::Time rcv_time = ros::Time(time_pc);
+
+    // Log retrieved frame information
+    std::string debug_msg;
+    debug_msg = "GetOneFrame,nFrameNum[" +
+                  std::to_string(stImageInfo.stFrameInfo.nFrameNum) + "], FrameTime: [" +
+                  std::to_string(rcv_time.toSec()) + "], Width: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nWidth) + "], Height: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nHeight) + "], nFrameLen: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nFrameLen);
+    ROS_INFO_STREAM(debug_msg.c_str());
+
+    if (stImageInfo.pBufAddr != NULL) {
+        nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
+        if (nRet != MV_OK) {
+            printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
+        }
+    }
+
+    // Convert Bayer GB format to BGR format
+    cv::Mat imgBayerGB(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC1, stImageInfo.pBufAddr);
+    cv::Mat imgBGR;
+    cv::cvtColor(imgBayerGB, imgBGR, cv::COLOR_BayerGB2BGR);
+
+    // Apply undistortion if required
+    cv::Mat cvImageOutput;
+    if (this->undistortion) {
+        cv::remap(imgBGR, cvImageOutput, this->map1, this->map2, this->interpolation);
+    } else {
+        cvImageOutput = imgBGR;
+    }
+
+    // Convert OpenCV image to ROS message
+    sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImageOutput).toImageMsg();
+    pRosImg->header.stamp = rcv_time;
+
+    // Update camera initialization info
+    cameraInfo.pUser = pUser;
+    cameraInfo.stImageInfo = stImageInfo;
+    cameraInfo.pImageCache = stImageInfo.pBufAddr;
 
     return pRosImg;
 }
 sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS(bool undistortion, int interpolation)
 {
-    this->undistortion = undistortion;
-    this->interpolation = interpolation;
+    void* pUser = cameraInfo.pUser;
 
-    void* pUser = cameraInitInfo.pUser;
-    MV_FRAME_OUT stImageInfo = cameraInitInfo.stImageInfo;
-    unsigned int nDataSize = cameraInitInfo.nDataSize;
-
-    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
-    // nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
-    // nRet = MV_CC_GetImageForRGB(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
-    if (nRet == MV_OK)
-    {
-        printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
-        stImageInfo.stFrameInfo.nWidth, stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nFrameNum, stImageInfo.stFrameInfo.nFrameLen);
-        
-        // for(int i = 0; i <= stImageInfo.stFrameInfo.nFrameLen; i++) printf("pData[%d] = %d\n", i, stImageInfo.pBufAddr[i]);
+    // Get payload size
+    MVCC_INTVALUE stParam;
+    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
+    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
+    if (MV_OK != nRet) {
+        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
+        return sensor_msgs::ImagePtr(); 
     }
-    else
-    {
+
+    MV_FRAME_OUT stImageInfo = {0};
+    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
+    if (nRet != MV_OK) {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
-        return sensor_msgs::ImagePtr();
+        return sensor_msgs::ImagePtr(); 
     }
-    if(NULL != stImageInfo.pBufAddr)
-    {
+
+    auto time_pc_clk = std::chrono::high_resolution_clock::now();
+    double time_pc =
+        uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(time_pc_clk.time_since_epoch()).count())
+        / 1000000000.0;
+    ros::Time rcv_time = ros::Time(time_pc);
+
+    // Log retrieved frame information
+    std::string debug_msg;
+    debug_msg = "GetOneFrame,nFrameNum[" +
+                  std::to_string(stImageInfo.stFrameInfo.nFrameNum) + "], FrameTime: [" +
+                  std::to_string(rcv_time.toSec()) + "], Width: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nWidth) + "], Height: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nHeight) + "], nFrameLen: [" +
+                  std::to_string(stImageInfo.stFrameInfo.nFrameLen);
+      ROS_INFO_STREAM(debug_msg.c_str());
+
+    // Log retrieved frame information
+    printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
+           stImageInfo.stFrameInfo.nWidth, stImageInfo.stFrameInfo.nHeight, 
+           stImageInfo.stFrameInfo.nFrameNum, stImageInfo.stFrameInfo.nFrameLen);
+
+    if (stImageInfo.pBufAddr != NULL) {
         nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
-        if(nRet != MV_OK)
-        {
+        if (nRet != MV_OK) {
             printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
         }
     }
 
+    // Convert Bayer GB format to BGR format
+    cv::Mat imgBayerGB(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC1, stImageInfo.pBufAddr);
+    cv::Mat imgBGR;
+    cv::cvtColor(imgBayerGB, imgBGR, cv::COLOR_BayerGB2BGR);
 
-    unsigned char *pDataForRGB = NULL;
-
-    pDataForRGB = (unsigned char*)malloc(stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight * 4 + 2048);
-    if (NULL == pDataForRGB)
-    {
-        printf("Error1");
-    }
-
-    MV_CC_PIXEL_CONVERT_PARAM stConvertParam = {0};
-    stConvertParam.nWidth = stImageInfo.stFrameInfo.nWidth;
-    stConvertParam.nHeight = stImageInfo.stFrameInfo.nHeight;
-    stConvertParam.pSrcData = stImageInfo.pBufAddr;
-    stConvertParam.nSrcDataLen = stImageInfo.stFrameInfo.nFrameLen;
-    stConvertParam.enSrcPixelType = stImageInfo.stFrameInfo.enPixelType;
-    stConvertParam.enDstPixelType = PixelType_Gvsp_RGB8_Packed;
-    stConvertParam.pDstBuffer = pDataForRGB;
-    stConvertParam.nDstBufferSize = stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight *  4 + 2048;
-
-    nRet = MV_CC_ConvertPixelType(pUser, &stConvertParam);
-    if (MV_OK != nRet)
-    {
-        printf("MV_CC_ConvertPixelType fail! nRet [%x]\n", nRet);
-    }
-
-    cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, pDataForRGB);
-    // cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, stImageInfo.pBufAddr);
-    if (cvImage.empty())  
-    {
-        printf("Could not open or find the image\n");
-    }
-
+    // Apply undistortion if required
     cv::Mat cvImageOutput;
-    if(this->undistortion)
-        cv::remap(cvImage, cvImageOutput, this->map1, this->map2, this->interpolation);
-    else
-        cvImageOutput = cvImage;
-    
+    if (undistortion) {
+        cv::remap(imgBGR, cvImageOutput, this->map1, this->map2, interpolation);
+    } else {
+        cvImageOutput = imgBGR;
+    }
 
+    // Convert OpenCV image to ROS message
     sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImageOutput).toImageMsg();
+    pRosImg->header.stamp = rcv_time;
 
-
-    cameraInitInfo.pUser = pUser;
-    cameraInitInfo.stImageInfo = stImageInfo;
-    // cameraInitInfo->pIamgeCache = pDataForRGB;
-    cameraInitInfo.pImageCache = pDataForRGB;
+    // Update camera initialization info
+    cameraInfo.pUser = pUser;
+    cameraInfo.stImageInfo = stImageInfo;
+    cameraInfo.pImageCache = stImageInfo.pBufAddr;
 
     return pRosImg;
 }
@@ -511,154 +719,127 @@ sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS(bool undistortion, int interpo
 cv::Mat HikCamera::grabOneFrame2Mat()
 {
 
-    void* pUser = cameraInitInfo.pUser;
-    MV_FRAME_OUT stImageInfo = cameraInitInfo.stImageInfo;
-    unsigned int nDataSize = cameraInitInfo.nDataSize;
+    void* pUser = cameraInfo.pUser;
 
-    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
-    // nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
-    // nRet = MV_CC_GetImageForRGB(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
-    if (nRet == MV_OK)
-    {
-        printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
-        stImageInfo.stFrameInfo.nWidth, stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nFrameNum, stImageInfo.stFrameInfo.nFrameLen);
-        
-        // for(int i = 0; i <= stImageInfo.stFrameInfo.nFrameLen; i++) printf("pData[%d] = %d\n", i, stImageInfo.pBufAddr[i]);
+    // Get payload size
+    MVCC_INTVALUE stParam;
+    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
+    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
+    if (MV_OK != nRet) {
+        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
+        return cv::Mat(); 
     }
-    else
-    {
+
+    MV_FRAME_OUT stImageInfo = {0};
+    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
+    if (nRet != MV_OK) {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
-        return cv::Mat();
+        return cv::Mat(); 
     }
-    if(NULL != stImageInfo.pBufAddr)
-    {
+
+    auto time_pc_clk = std::chrono::high_resolution_clock::now();
+    double time_pc =
+    uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(time_pc_clk.time_since_epoch()).count())
+    / 1000000000.0;
+    ros::Time rcv_time = ros::Time(time_pc);
+
+    std::string debug_msg;
+    debug_msg = "GetOneFrame,nFrameNum[" +
+                  std::to_string(stImageInfo.stFrameInfo.nFrameNum) + "], FrameTime:" +
+                  std::to_string(rcv_time.toSec()) + "], Width:" +
+                  std::to_string(stImageInfo.stFrameInfo.nWidth) + "], Height:" +
+                  std::to_string(stImageInfo.stFrameInfo.nHeight) + "], nFrameLen:" +
+                  std::to_string(stImageInfo.stFrameInfo.nFrameLen);
+    ROS_INFO_STREAM(debug_msg.c_str());
+
+    // Log retrieved frame information
+    printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
+           stImageInfo.stFrameInfo.nWidth, stImageInfo.stFrameInfo.nHeight, 
+           stImageInfo.stFrameInfo.nFrameNum, stImageInfo.stFrameInfo.nFrameLen);
+
+    if (stImageInfo.pBufAddr != NULL) {
         nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
-        if(nRet != MV_OK)
-        {
+        if (nRet != MV_OK) {
             printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
         }
     }
 
+    // Convert Bayer GB format to BGR format
+    cv::Mat imgBayerGB(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC1, stImageInfo.pBufAddr);
+    cv::Mat imgBGR;
+    cv::cvtColor(imgBayerGB, imgBGR, cv::COLOR_BayerGB2BGR);
 
-    unsigned char *pDataForRGB = NULL;
-
-    pDataForRGB = (unsigned char*)malloc(stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight * 4 + 2048);
-    if (NULL == pDataForRGB)
-    {
-        printf("Error1");
-    }
-
-    MV_CC_PIXEL_CONVERT_PARAM stConvertParam = {0};
-    stConvertParam.nWidth = stImageInfo.stFrameInfo.nWidth;
-    stConvertParam.nHeight = stImageInfo.stFrameInfo.nHeight;
-    stConvertParam.pSrcData = stImageInfo.pBufAddr;
-    stConvertParam.nSrcDataLen = stImageInfo.stFrameInfo.nFrameLen;
-    stConvertParam.enSrcPixelType = stImageInfo.stFrameInfo.enPixelType;
-    stConvertParam.enDstPixelType = PixelType_Gvsp_RGB8_Packed;
-    stConvertParam.pDstBuffer = pDataForRGB;
-    stConvertParam.nDstBufferSize = stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight *  4 + 2048;
-
-    nRet = MV_CC_ConvertPixelType(pUser, &stConvertParam);
-    if (MV_OK != nRet)
-    {
-        printf("MV_CC_ConvertPixelType fail! nRet [%x]\n", nRet);
-    }
-
-    cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, pDataForRGB);
-    // cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, stImageInfo.pBufAddr);
-    if (cvImage.empty())  
-    {
-        printf("Could not open or find the image\n");
-    }
-
+    // Apply undistortion if required
     cv::Mat cvImageOutput;
-    if(this->undistortion)
-        cv::remap(cvImage, cvImageOutput, this->map1, this->map2, this->interpolation);
-    else
-        cvImageOutput = cvImage;
+    if (undistortion) {
+        cv::remap(imgBGR, cvImageOutput, this->map1, this->map2, interpolation);
+    } else {
+        cvImageOutput = imgBGR;
+    }
 
-    cameraInitInfo.pUser = pUser;
-    cameraInitInfo.stImageInfo = stImageInfo;
-    // cameraInitInfo->pIamgeCache = pDataForRGB;
-    cameraInitInfo.pImageCache = pDataForRGB;
+    // Convert OpenCV image to ROS message
+    sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImageOutput).toImageMsg();
+    pRosImg->header.stamp = rcv_time;
+
+    // Update camera initialization info
+    cameraInfo.pUser = pUser;
+    cameraInfo.stImageInfo = stImageInfo;
+    cameraInfo.pImageCache = stImageInfo.pBufAddr;
 
     return cvImageOutput;
 }
 cv::Mat HikCamera::grabOneFrame2Mat(bool undistortion, int interpolation)
 {
-    this->undistortion = undistortion;
-    this->interpolation = interpolation;
+    void* pUser = cameraInfo.pUser;
 
-    void* pUser = cameraInitInfo.pUser;
-    MV_FRAME_OUT stImageInfo = cameraInitInfo.stImageInfo;
-    unsigned int nDataSize = cameraInitInfo.nDataSize;
-
-    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000);
-    // nRet = MV_CC_GetOneFrameTimeout(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
-    // nRet = MV_CC_GetImageForRGB(pUser, stImageInfo.pBufAddr, nDataSize, &(stImageInfo.stFrameInfo), 1000);
-    if (nRet == MV_OK)
-    {
-        printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
-        stImageInfo.stFrameInfo.nWidth, stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nFrameNum, stImageInfo.stFrameInfo.nFrameLen);
-        
-        // for(int i = 0; i <= stImageInfo.stFrameInfo.nFrameLen; i++) printf("pData[%d] = %d\n", i, stImageInfo.pBufAddr[i]);
+    // Get payload size
+    MVCC_INTVALUE stParam;
+    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
+    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
+    if (MV_OK != nRet) {
+        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
+        return cv::Mat(); 
     }
-    else
-    {
+
+    MV_FRAME_OUT stImageInfo = {0};
+    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
+    if (nRet != MV_OK) {
         printf("Get Image fail! nRet [0x%x]\n", nRet);
-        return cv::Mat();
+        return cv::Mat(); 
     }
-    if(NULL != stImageInfo.pBufAddr)
-    {
+
+    // Log retrieved frame information
+    printf("GetOneFrame, Width[%d], Height[%d], nFrameNum[%d], nFrameLen[%d]\n", 
+           stImageInfo.stFrameInfo.nWidth, stImageInfo.stFrameInfo.nHeight, 
+           stImageInfo.stFrameInfo.nFrameNum, stImageInfo.stFrameInfo.nFrameLen);
+
+    if (stImageInfo.pBufAddr != NULL) {
         nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
-        if(nRet != MV_OK)
-        {
+        if (nRet != MV_OK) {
             printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
         }
     }
 
+    // Convert Bayer GB format to BGR format
+    cv::Mat imgBayerGB(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC1, stImageInfo.pBufAddr);
+    cv::Mat imgBGR;
+    cv::cvtColor(imgBayerGB, imgBGR, cv::COLOR_BayerGB2BGR);
 
-    unsigned char *pDataForRGB = NULL;
-
-    pDataForRGB = (unsigned char*)malloc(stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight * 4 + 2048);
-    if (NULL == pDataForRGB)
-    {
-        printf("Error1");
-    }
-
-    MV_CC_PIXEL_CONVERT_PARAM stConvertParam = {0};
-    stConvertParam.nWidth = stImageInfo.stFrameInfo.nWidth;
-    stConvertParam.nHeight = stImageInfo.stFrameInfo.nHeight;
-    stConvertParam.pSrcData = stImageInfo.pBufAddr;
-    stConvertParam.nSrcDataLen = stImageInfo.stFrameInfo.nFrameLen;
-    stConvertParam.enSrcPixelType = stImageInfo.stFrameInfo.enPixelType;
-    stConvertParam.enDstPixelType = PixelType_Gvsp_RGB8_Packed;
-    stConvertParam.pDstBuffer = pDataForRGB;
-    stConvertParam.nDstBufferSize = stImageInfo.stFrameInfo.nWidth * stImageInfo.stFrameInfo.nHeight *  4 + 2048;
-
-    nRet = MV_CC_ConvertPixelType(pUser, &stConvertParam);
-    if (MV_OK != nRet)
-    {
-        printf("MV_CC_ConvertPixelType fail! nRet [%x]\n", nRet);
-    }
-
-    cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, pDataForRGB);
-    // cv::Mat cvImage(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC3, stImageInfo.pBufAddr);
-    if (cvImage.empty())  
-    {
-        printf("Could not open or find the image\n");
-    }
-
+    // Apply undistortion if required
     cv::Mat cvImageOutput;
-    if(this->undistortion)
-        cv::remap(cvImage, cvImageOutput, this->map1, this->map2, this->interpolation);
-    else
-        cvImageOutput = cvImage;
+    if (undistortion) {
+        cv::remap(imgBGR, cvImageOutput, this->map1, this->map2, interpolation);
+    } else {
+        cvImageOutput = imgBGR;
+    }
 
-    cameraInitInfo.pUser = pUser;
-    cameraInitInfo.stImageInfo = stImageInfo;
-    // cameraInitInfo->pIamgeCache = pDataForRGB;
-    cameraInitInfo.pImageCache = pDataForRGB;
+    // Convert OpenCV image to ROS message
+    sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImageOutput).toImageMsg();
+
+    // Update camera initialization info
+    cameraInfo.pUser = pUser;
+    cameraInfo.stImageInfo = stImageInfo;
+    cameraInfo.pImageCache = stImageInfo.pBufAddr;
 
     return cvImageOutput;
 }
@@ -674,56 +855,73 @@ cv::Mat HikCamera::getNewCameraMatrix()
 
 int HikCamera::freeFrameCache()
 {
-    free(cameraInitInfo.pImageCache);
+    free(cameraInfo.pImageCache);
     return MV_OK;
 }
 
 void HikCamera::stop_grab()
 {
-    void *handle = cameraInitInfo.pUser;
-
-    // 停止取流
-    // end grab image
-    nRet = MV_CC_StopGrabbing(handle);
-    if (MV_OK != nRet)
+    if(cameraInfo.pUser != NULL)
     {
-        printf("MV_CC_Stopgrab fail! nRet [%x]\n", nRet);
-    }
+        void *handle = cameraInfo.pUser;
 
-    // 销毁句柄
-    // destroy handle
-    nRet = MV_CC_DestroyHandle(handle);
-    if (MV_OK != nRet)
-    {
-        printf("MV_CC_DestroyHandle fail! nRet [%x]\n", nRet);
+        // 停止取流
+        // end grab image
+        nRet = MV_CC_StopGrabbing(handle);
+        if (MV_OK != nRet)
+        {
+            printf("MV_CC_Stopgrab fail! nRet [%x]\n", nRet);
+        }
+
+        // 销毁句柄
+        // destroy handle
+        nRet = MV_CC_DestroyHandle(handle);
+        if (MV_OK != nRet)
+        {
+            printf("MV_CC_DestroyHandle fail! nRet [%x]\n", nRet);
+        }
+        // if (cameraInfo.pImageCache)
+        // {
+        //     free(cameraInfo.pImageCache);	
+        //     cameraInfo.pImageCache = NULL;
+        // }
+        // if (cameraInfo.stImageInfo.pBufAddr)
+        // {
+        //     free(cameraInfo.stImageInfo.pBufAddr);	
+        //     cameraInfo.stImageInfo.pBufAddr = NULL;
+        // }    
+        free(cameraInfo.pUser);
+        cameraInfo.pUser = NULL;
     }
-    // if (cameraInitInfo.pImageCache)
-    // {
-    //     free(cameraInitInfo.pImageCache);	
-    //     cameraInitInfo.pImageCache = NULL;
-    // }
-    // if (cameraInitInfo.stImageInfo.pBufAddr)
-    // {
-    //     free(cameraInitInfo.stImageInfo.pBufAddr);	
-    //     cameraInitInfo.stImageInfo.pBufAddr = NULL;
-    // }
+    
 }
 
 
 
 
 void HikCamera::printParam(){
-    printf("width: %d\n", this->width);
-    printf("height: %d\n", this->height);
-    printf("offset_x: %d\n", this->Offset_x);
-    printf("offset_y: %d\n", this->Offset_y);
-    printf("frameRateEnable: %d\n", this->FrameRateEnable);
-    printf("frameRate: %d\n", this->FrameRate);
-    printf("exposureTime: %d\n", this->ExposureTime);
-    printf("gainAuto: %d\n", this->GainAuto);
+    printf("width: %d\n", this->hikcamera_param.width);
+    printf("height: %d\n", this->hikcamera_param.height);
+    printf("Offset_x: %d\n", this->hikcamera_param.Offset_x);
+    printf("Offset_y: %d\n", this->hikcamera_param.Offset_y);
+    printf("FrameRateEnable: %d\n", this->hikcamera_param.FrameRateEnable);
+    printf("FrameRate: %d\n", this->hikcamera_param.FrameRate);
 
-    printf("BayerCvtQuality: %d\n", this->bayerCvtQuality);
+    printf("TriggerMode: %d\n", this->hikcamera_param.TriggerMode);
+    printf("LineSelector: %d\n", this->hikcamera_param.LineSelector);
+    printf("StrobeEnable: %d\n", this->hikcamera_param.StrobeEnable);
+    printf("StrobeLineDelay: %d\n", this->hikcamera_param.StrobeLineDelay);
+    printf("StrobeLinePreDelay: %d\n", this->hikcamera_param.StrobeLinePreDelay);
 
-    printf("undistortion: %d\n", this->undistortion);
+    printf("ExposureAuto: %d\n", this->hikcamera_param.ExposureAuto);
+    printf("ExposureTimeUpper: %d\n", this->hikcamera_param.ExposureTimeUpper);
+    printf("ExposureTimeLower: %d\n", this->hikcamera_param.ExposureTimeLower);
+    printf("ExposureTime: %d\n", this->hikcamera_param.ExposureTime);
 
+    printf("GainAuto: %d\n", this->hikcamera_param.GainAuto);
+    printf("Gain: %f\n", this->hikcamera_param.Gain); 
+
+    printf("BayerCvtQuality: %d\n", this->hikcamera_param.bayerCvtQuality);
+
+    printf("undistortion: %d\n", this->undistortion); 
 }

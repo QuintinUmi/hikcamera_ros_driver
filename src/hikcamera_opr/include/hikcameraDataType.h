@@ -3,7 +3,7 @@
 
 #include "MvCameraControl.h" 
 
-typedef struct _CAMERA_INIT_INFO_
+typedef struct _CAMERA_INFO_
 {
     void* pUser;
     unsigned int nDataSize;
@@ -11,6 +11,14 @@ typedef struct _CAMERA_INIT_INFO_
 
     unsigned char* pImageCache;
 
-}CAMERA_INIT_INFO;
+}CAMERA_INFO;
+
+
+struct _GPRMC_TIME_STAMP_
+{
+    int64_t high;
+    int64_t low;
+};
+
 
 #endif

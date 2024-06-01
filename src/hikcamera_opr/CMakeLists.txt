@@ -134,7 +134,7 @@ LINK_DIRECTORIES(
 )
 
 ## Declare a C++ library
-add_library(msg_hikcamera_lib
+add_library(hikcamera_lib
   include/hikcamera.h
   include/hikcameraDataType.h
   lib/hikcamera.cpp
@@ -143,10 +143,25 @@ add_library(msg_hikcamera_lib
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-add_dependencies(msg_hikcamera_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(hikcamera_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-target_link_libraries(msg_hikcamera_lib
-  ${catkin_LIBRARIES})
+target_link_libraries(hikcamera_lib
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  #  GCBase_gcc421_v3_0
+  MvCameraControl
+  #  GenApi_gcc421_v3_0
+  MVGigEVisionSDK
+  #  log4cpp_gcc421_v3_0
+  MVRender
+  #  Log_gcc421_v3_0
+  MvUsb3vTL
+  #  MathParser_gcc421_v3_0
+  #  NodeMapData_gcc421_v3_0
+  MediaProcess
+  #  XmlParser_gcc421_v3_0
+  X11
+  )
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -156,6 +171,9 @@ add_executable(msg_hikcamera_info src/msg_hikcamera_info.cpp)
 add_executable(img_hikcamera_grab_save src/img_hikcamera_grab_save.cpp)
 add_executable(key_input src/key_input.cpp)
 add_executable(img_show src/img_show.cpp)
+
+add_executable(GPRMC_sync_grab_trigger src/GPRMC_sync_grab_trigger.cpp)
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -172,20 +190,7 @@ add_executable(img_show src/img_show.cpp)
 target_link_libraries(msg_hikcamera_grab
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
-  msg_hikcamera_lib
-  #  GCBase_gcc421_v3_0
-  MvCameraControl
-  #  GenApi_gcc421_v3_0
-  MVGigEVisionSDK
-  #  log4cpp_gcc421_v3_0
-  MVRender
-  #  Log_gcc421_v3_0
-  MvUsb3vTL
-  #  MathParser_gcc421_v3_0
-  #  NodeMapData_gcc421_v3_0
-  MediaProcess
-  #  XmlParser_gcc421_v3_0
-  X11
+  hikcamera_lib
 )
 
 target_link_libraries(msg_hikcamera_info
@@ -194,21 +199,8 @@ target_link_libraries(msg_hikcamera_info
 
 target_link_libraries(img_hikcamera_grab_save
   ${catkin_LIBRARIES}
-  # ${OpenCV_LIBRARIES}
-  msg_hikcamera_lib
-  #  GCBase_gcc421_v3_0
-  MvCameraControl
-  #  GenApi_gcc421_v3_0
-  MVGigEVisionSDK
-  #  log4cpp_gcc421_v3_0
-  MVRender
-  #  Log_gcc421_v3_0
-  MvUsb3vTL
-  #  MathParser_gcc421_v3_0
-  #  NodeMapData_gcc421_v3_0
-  MediaProcess
-  #  XmlParser_gcc421_v3_0
-  X11
+  ${OpenCV_LIBRARIES}
+  hikcamera_lib
 )
 
 target_link_libraries(key_input
@@ -218,6 +210,12 @@ target_link_libraries(key_input
 target_link_libraries(img_show
   ${catkin_LIBRARIES}
 )
+
+target_link_libraries(GPRMC_sync_grab_trigger
+  ${catkin_LIBRARIES}
+  hikcamera_lib
+)
+
 
 
 #############

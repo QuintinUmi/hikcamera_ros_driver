@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     cv::Mat cvImage;
     sensor_msgs::Image imgOneFrame;
     sensor_msgs::ImagePtr imgMsg;
-    CAMERA_INIT_INFO cameraInitInfo = hikCamera.camera_init();
+    CAMERA_INFO cameraInfo = hikCamera.camera_init();
 
     cv::String filePath, fileName;
 
@@ -91,10 +91,10 @@ int main(int argc, char *argv[])
         printf("There is something wrong with hikcamera parameters setting!\n");
         getchar();
     }
-    cameraInitInfo = hikCamera.start_grab();
+    cameraInfo = hikCamera.start_grab();
 
-    void *pUser = cameraInitInfo.pUser;
-    unsigned int nDataSize = cameraInitInfo.nDataSize;
+    void *pUser = cameraInfo.pUser;
+    unsigned int nDataSize = cameraInfo.nDataSize;
     MV_FRAME_OUT* stImageInfo;
     
 

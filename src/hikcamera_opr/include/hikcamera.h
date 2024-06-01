@@ -4,6 +4,10 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 
+#include <fcntl.h>
+#include <sys/ipc.h>
+#include <sys/mman.h>
+
 #include "MvCameraControl.h"
 
 #include "hikcameraDataType.h"
@@ -11,6 +15,38 @@
 
 class HikCamera
 {
+    public:
+
+        struct _HIKCAMERA_PARAM_{
+
+            int width;
+            int height;
+            int Offset_x;
+            int Offset_y;
+            bool FrameRateEnable;
+            int FrameRate;
+
+            int TriggerMode;
+            int LineSelector;
+            int LineMode;
+            int LineSource;
+
+            bool StrobeEnable;
+            int StrobeLineDelay;
+            int StrobeLinePreDelay;
+
+            int ExposureAuto;
+            int ExposureTimeUpper;
+            int ExposureTimeLower;
+            int ExposureTime;
+
+            float Gain;
+            int GainAuto;
+
+            int bayerCvtQuality;
+
+        };
+
     public:
 
         HikCamera();
@@ -23,7 +59,7 @@ class HikCamera
         bool PrintDeviceInfo(MV_CC_DEVICE_INFO* pstMVDevInfo);
 
 
-        CAMERA_INIT_INFO camera_init();
+        CAMERA_INFO camera_init();
 
 
         int setCameraParam();
@@ -36,7 +72,9 @@ class HikCamera
         bool setCameraIntrinsics(int imageWidth, int imageHeight, cv::Mat cameraMatrix, cv::Mat disCoffes = cv::Mat());
 
 
-        CAMERA_INIT_INFO start_grab();
+        CAMERA_INFO start_grab();
+
+        sensor_msgs::ImagePtr grabOneFrame2ROS_sync(_GPRMC_TIME_STAMP_ *GPRMC_ptr);
 
         sensor_msgs::ImagePtr grabOneFrame2ROS();
         sensor_msgs::ImagePtr grabOneFrame2ROS(bool undistortion, int interpolation = 1);
@@ -60,20 +98,11 @@ class HikCamera
         void *camHandle;
         int camIndex;
 
-        CAMERA_INIT_INFO cameraInitInfo;
+        CAMERA_INFO cameraInfo;
 
         int nRet;
-        int width;
-        int height;
-        int Offset_x;
-        int Offset_y;
-        bool FrameRateEnable;
-        int FrameRate;
-        int ExposureTime;
-        float Gain;
-        int GainAuto;
 
-        int bayerCvtQuality;
+        _HIKCAMERA_PARAM_ hikcamera_param;
 
         cv::String cameraIntrinsicsPath;
         bool undistortion;
@@ -87,6 +116,8 @@ class HikCamera
         cv::Size newImageSize;
         cv::Mat map1;
         cv::Mat map2;
+
+        _GPRMC_TIME_STAMP_ GPRMC_ptr_;
 };
 
 

@@ -63,6 +63,24 @@
         "array": "cpp",
         "variant": "cpp",
         "ctime": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "chrono": "cpp",
+        "cctype": "cpp",
+        "clocale": "cpp",
+        "bitset": "cpp",
+        "deque": "cpp",
+        "forward_list": "cpp",
+        "system_error": "cpp",
+        "mutex": "cpp",
+        "charconv": "cpp",
+        "strstream": "cpp",
+        "condition_variable": "cpp",
+        "fstream": "cpp",
+        "iomanip": "cpp",
+        "numeric": "cpp",
+        "thread": "cpp",
+        "typeindex": "cpp",
+        "__locale": "cpp",
+        "locale": "cpp"
     }
 }
