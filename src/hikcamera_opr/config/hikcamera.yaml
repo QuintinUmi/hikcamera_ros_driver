@@ -9,6 +9,9 @@ ExposureTime: 30000
 GainAuto: 1 # 0: off, 1: once, 2: Continuous
 Gain: 10000.0
 
+TriggerMode: 0
+LineSelector: 0
+
 
 BayerCvtQuality: 1
 

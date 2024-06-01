@@ -63,7 +63,7 @@ void KeyInput_CallBack(std_msgs::Int8::ConstPtr key_ascii, ros::NodeHandle rosHa
 
 int main(int argc, char *argv[])
 {
-    ros::init(argc, argv, "msg_camera_grabbing");
+    ros::init(argc, argv, "msg_camera_grab");
     ros::NodeHandle rosHandle;
     HikCamera hikCamera(rosHandle, 0);
     
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
         printf("There is something wrong with hikcamera parameters setting!\n");
         getchar();
     }
-    cameraInitInfo = hikCamera.start_grabbing();
+    cameraInitInfo = hikCamera.start_grab();
 
     void *pUser = cameraInitInfo.pUser;
     unsigned int nDataSize = cameraInitInfo.nDataSize;
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        cvImage = hikCamera.grabbingOneFrame2Mat();
+        cvImage = hikCamera.grabOneFrame2Mat();
         if(cvImage.empty())
         {
         	continue;
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
         // loop_rate.sleep();
     }
 
-    // hikCamera.stop_grabbing();
+    // hikCamera.stop_grab();
 
 
     return 0;

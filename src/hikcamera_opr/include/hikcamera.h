@@ -36,19 +36,19 @@ class HikCamera
         bool setCameraIntrinsics(int imageWidth, int imageHeight, cv::Mat cameraMatrix, cv::Mat disCoffes = cv::Mat());
 
 
-        CAMERA_INIT_INFO start_grabbing();
+        CAMERA_INIT_INFO start_grab();
 
-        sensor_msgs::ImagePtr grabbingOneFrame2ROS();
-        sensor_msgs::ImagePtr grabbingOneFrame2ROS(bool undistortion, int interpolation = 1);
+        sensor_msgs::ImagePtr grabOneFrame2ROS();
+        sensor_msgs::ImagePtr grabOneFrame2ROS(bool undistortion, int interpolation = 1);
 
-        cv::Mat grabbingOneFrame2Mat();
-        cv::Mat grabbingOneFrame2Mat(bool undistortion, int interpolation = 1);
+        cv::Mat grabOneFrame2Mat();
+        cv::Mat grabOneFrame2Mat(bool undistortion, int interpolation = 1);
 
         cv::Mat getNewCameraMatrix();
 
         int freeFrameCache();
 
-        void stop_grabbing();
+        void stop_grab();
 
         void printParam();
 

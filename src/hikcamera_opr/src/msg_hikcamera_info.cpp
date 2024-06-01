@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
         loop_rate.sleep();
     }
 
-    // hikCamera.stop_grabbing();
+    // hikCamera.stop_grab();
 
 
     return 0;

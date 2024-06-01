@@ -76,7 +76,7 @@ HikCamera::HikCamera(int width, int height, int Offset_x, int Offset_y, bool Fra
 }
 HikCamera::~HikCamera()
 {
-    stop_grabbing();
+    stop_grab();
 }
 
 bool HikCamera::PrintDeviceInfo(MV_CC_DEVICE_INFO* pstMVDevInfo)
@@ -303,7 +303,7 @@ bool HikCamera::setCameraIntrinsics(int imageWidth, int imageHeight, cv::Mat cam
 
 
 
-CAMERA_INIT_INFO HikCamera::start_grabbing()
+CAMERA_INIT_INFO HikCamera::start_grab()
 {
     int Ret = MV_OK;
     // 开始取流
@@ -311,7 +311,7 @@ CAMERA_INIT_INFO HikCamera::start_grabbing()
     nRet = MV_CC_StartGrabbing(camHandle);
     if (MV_OK != nRet)
     {
-        printf("MV_CC_StartGrabbing fail! nRet [%x]\n", nRet);
+        printf("MV_CC_Startgrab fail! nRet [%x]\n", nRet);
     }
 
     // ch:获取数据包大小 | en:Get payload size
@@ -344,7 +344,7 @@ CAMERA_INIT_INFO HikCamera::start_grabbing()
 }
 
 
-sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS()
+sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS()
 {
 
     void* pUser = cameraInitInfo.pUser;
@@ -424,7 +424,7 @@ sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS()
 
     return pRosImg;
 }
-sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS(bool undistortion, int interpolation)
+sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS(bool undistortion, int interpolation)
 {
     this->undistortion = undistortion;
     this->interpolation = interpolation;
@@ -508,7 +508,7 @@ sensor_msgs::ImagePtr HikCamera::grabbingOneFrame2ROS(bool undistortion, int int
 }
 
 
-cv::Mat HikCamera::grabbingOneFrame2Mat()
+cv::Mat HikCamera::grabOneFrame2Mat()
 {
 
     void* pUser = cameraInitInfo.pUser;
@@ -584,7 +584,7 @@ cv::Mat HikCamera::grabbingOneFrame2Mat()
 
     return cvImageOutput;
 }
-cv::Mat HikCamera::grabbingOneFrame2Mat(bool undistortion, int interpolation)
+cv::Mat HikCamera::grabOneFrame2Mat(bool undistortion, int interpolation)
 {
     this->undistortion = undistortion;
     this->interpolation = interpolation;
@@ -678,7 +678,7 @@ int HikCamera::freeFrameCache()
     return MV_OK;
 }
 
-void HikCamera::stop_grabbing()
+void HikCamera::stop_grab()
 {
     void *handle = cameraInitInfo.pUser;
 
@@ -687,7 +687,7 @@ void HikCamera::stop_grabbing()
     nRet = MV_CC_StopGrabbing(handle);
     if (MV_OK != nRet)
     {
-        printf("MV_CC_StopGrabbing fail! nRet [%x]\n", nRet);
+        printf("MV_CC_Stopgrab fail! nRet [%x]\n", nRet);
     }
 
     // 销毁句柄

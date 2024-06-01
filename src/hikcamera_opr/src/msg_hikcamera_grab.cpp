@@ -22,7 +22,7 @@
 
 int main(int argc, char *argv[])
 {
-    ros::init(argc, argv, "msg_camera_grabbing");
+    ros::init(argc, argv, "msg_camera_grab");
     ros::NodeHandle rosHandle;
     HikCamera hikCamera(rosHandle, 0);
     
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
         printf("There is something wrong with hikcamera parameters setting!\n");
         getchar();
     }
-    cameraInitInfo = hikCamera.start_grabbing();
+    cameraInitInfo = hikCamera.start_grab();
     
 
     void *pUser = cameraInitInfo.pUser;
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     while(ros::ok()){
 
         ros::spinOnce();
-        imgMsg = hikCamera.grabbingOneFrame2ROS();
+        imgMsg = hikCamera.grabOneFrame2ROS();
         if(!imgMsg)
         {
         	continue;
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
         loop_rate.sleep();
     }
 
-    // hikCamera.stop_grabbing();
+    // hikCamera.stop_grab();
 
 
     return 0;
