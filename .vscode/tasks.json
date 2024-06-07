@@ -1,22 +1,18 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "catkin_make",
-			"args": [
-				"--directory",
-				"/home/quintinumi/project/ws_hikcamera_ros_driver",
-				"-DCMAKE_BUILD_TYPE=RelWithDebInfo"
-			],
-			"problemMatcher": [
-				"$catkin-gcc"
-			],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-			"label": "catkin_make: build",
-		}
-	]
-	
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build ROS Workspace",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "source /opt/ros/noetic/setup.bash && catkin_make --directory /home/quintinumi/project/ws_hikcamera_ros_driver -DCMAKE_BUILD_TYPE=RelWithDebInfo"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
 }

@@ -287,43 +287,43 @@ int HikCamera::setCameraParam()
             return nRet;
         }
 
-        if(this->hikcamera_param.LineSelector == 2)
-        {
-            nRet = MV_CC_SetEnumValue(camHandle, "LineMode", this->hikcamera_param.LineMode);//仅line2需要设置
-            if(nRet != MV_OK)
-            {
-                printf("Error setting LineMode: %d\n", nRet);
-                return nRet;
-            }
-        }
+        // if(this->hikcamera_param.LineSelector == 2)
+        // {
+        //     nRet = MV_CC_SetEnumValue(camHandle, "LineMode", this->hikcamera_param.LineMode);//仅line2需要设置
+        //     if(nRet != MV_OK)
+        //     {
+        //         printf("Error setting LineMode: %d\n", nRet);
+        //         return nRet;
+        //     }
+        // }
         
-        nRet = MV_CC_SetEnumValue(camHandle, "LineSource", this->hikcamera_param.LineSource);
-        if(nRet != MV_OK)
-        {
-            printf("Error setting LineSource: %d\n", nRet);
-            return nRet;
-        }
+        // nRet = MV_CC_SetEnumValue(camHandle, "LineSource", this->hikcamera_param.LineSource);
+        // if(nRet != MV_OK)
+        // {
+        //     printf("Error setting LineSource: %d\n", nRet);
+        //     return nRet;
+        // }
 
-        // 设置 StrobeLineDelay
-        nRet = MV_CC_SetIntValue(camHandle, "LineDelay", this->hikcamera_param.StrobeLineDelay);
-        if (nRet != MV_OK) {
-            printf("Error setting StrobeLineDelay: %d\n", nRet);
-            return nRet;
-        }
+        // // 设置 StrobeLineDelay
+        // nRet = MV_CC_SetIntValue(camHandle, "LineDelay", this->hikcamera_param.StrobeLineDelay);
+        // if (nRet != MV_OK) {
+        //     printf("Error setting StrobeLineDelay: %d\n", nRet);
+        //     return nRet;
+        // }
 
-        // 设置 StrobeLinePreDelay
-        nRet = MV_CC_SetIntValue(camHandle, "LinePreDelay", this->hikcamera_param.StrobeLinePreDelay);
-        if (nRet != MV_OK) {
-            printf("Error setting StrobeLinePreDelay: %d\n", nRet);
-            return nRet;
-        }
+        // // 设置 StrobeLinePreDelay
+        // nRet = MV_CC_SetIntValue(camHandle, "LinePreDelay", this->hikcamera_param.StrobeLinePreDelay);
+        // if (nRet != MV_OK) {
+        //     printf("Error setting StrobeLinePreDelay: %d\n", nRet);
+        //     return nRet;
+        // }
 
-        // 设置 StrobeEnable
-        nRet = MV_CC_SetBoolValue(camHandle, "StrobeEnable", this->hikcamera_param.StrobeEnable);
-        if (nRet != MV_OK) {
-            printf("Error setting StrobeEnable: %d\n", nRet);
-            return nRet;
-        }
+        // // 设置 StrobeEnable
+        // nRet = MV_CC_SetBoolValue(camHandle, "StrobeEnable", this->hikcamera_param.StrobeEnable);
+        // if (nRet != MV_OK) {
+        //     printf("Error setting StrobeEnable: %d\n", nRet);
+        //     return nRet;
+        // }
     }
     
 
@@ -530,8 +530,10 @@ sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS_sync(_GPRMC_TIME_STAMP_ *GPRMC
     auto time_pc_clk = std::chrono::high_resolution_clock::now();
     int64_t b = GPRMC_ptr->low;
     // printf("b:%d\n", b);
+
     double time_pc = b / 1000000000.0;
     ros::Time rcv_time = ros::Time(time_pc);
+    
 
     // Log retrieved frame information
     std::string debug_msg;
