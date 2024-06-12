@@ -22,6 +22,9 @@
 #include "hikcamera.h"
 #include "kbhit.h"
 
+
+using namespace hikcamera_opr;
+
 #define MAX_IMAGE_INDEX 200
 
 bool g_exit = false;

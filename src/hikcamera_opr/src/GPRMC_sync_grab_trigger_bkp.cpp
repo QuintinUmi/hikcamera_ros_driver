@@ -20,6 +20,8 @@
 #include "hikcamera.h"
 
 
+using namespace hikcamera_opr;
+
 int main(int argc, char *argv[])
 {
     ros::init(argc, argv, "msg_camera_grab");

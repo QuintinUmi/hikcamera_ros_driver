@@ -14,11 +14,5 @@ typedef struct _CAMERA_INFO_
 }CAMERA_INFO;
 
 
-struct _GPRMC_TIME_STAMP_
-{
-    int64_t high;
-    int64_t low;
-};
-
 
 #endif

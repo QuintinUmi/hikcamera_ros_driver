@@ -20,6 +20,8 @@
 #include "hikcamera.h"
 
 
+using namespace hikcamera_opr;
+
 int main(int argc, char *argv[])
 {
     ros::init(argc, argv, "msg_camera_grab");
@@ -61,13 +63,13 @@ int main(int argc, char *argv[])
     ros::Rate loop_rate(loopRate);
     
     int fd = open(GPRMC_sync_serial_path.c_str(), O_RDWR);
-    _GPRMC_TIME_STAMP_ *GPRMC_ptr = (_GPRMC_TIME_STAMP_*)mmap(NULL, sizeof(_GPRMC_TIME_STAMP_), PROT_READ | PROT_WRITE,
+    GPRMC_TIME_STAMP *GPRMC_ptr = (GPRMC_TIME_STAMP*)mmap(NULL, sizeof(GPRMC_TIME_STAMP), PROT_READ | PROT_WRITE,
                                     MAP_SHARED, fd, 0);
 
     while(ros::ok()){
 
         ros::spinOnce();
-        imgMsg = hikCamera.grabOneFrame2ROS_sync(GPRMC_ptr);
+        // imgMsg = hikCamera.grabOneFrame2ROS_sync(GPRMC_ptr);
         if(!imgMsg)
         {
         	continue;
@@ -79,7 +81,7 @@ int main(int argc, char *argv[])
         loop_rate.sleep();
     }
 
-    munmap(GPRMC_ptr, sizeof(_GPRMC_TIME_STAMP_) * 5);
+    munmap(GPRMC_ptr, sizeof(GPRMC_TIME_STAMP) * 5);
 
     hikCamera.stop_grab();
 

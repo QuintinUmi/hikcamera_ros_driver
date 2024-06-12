@@ -23,7 +23,10 @@
 
 #include "hikcamera.h"
 
-/*--- The code with text comments/descriptions are the hikvision camera API code/frame provided by the vendor. ---*/
+
+using namespace hikcamera_opr;
+using namespace livox_ros;
+
 
 HikCamera::HikCamera(){}
 HikCamera::HikCamera(ros::NodeHandle &nodeHandle, int cameraIndex)
@@ -287,15 +290,15 @@ int HikCamera::setCameraParam()
             return nRet;
         }
 
-        // if(this->hikcamera_param.LineSelector == 2)
-        // {
-        //     nRet = MV_CC_SetEnumValue(camHandle, "LineMode", this->hikcamera_param.LineMode);//仅line2需要设置
-        //     if(nRet != MV_OK)
-        //     {
-        //         printf("Error setting LineMode: %d\n", nRet);
-        //         return nRet;
-        //     }
-        // }
+        if(this->hikcamera_param.LineSelector == 2)
+        {
+            nRet = MV_CC_SetEnumValue(camHandle, "LineMode", this->hikcamera_param.LineMode);//仅line2需要设置
+            if(nRet != MV_OK)
+            {
+                printf("Error setting LineMode: %d\n", nRet);
+                return nRet;
+            }
+        }
         
         // nRet = MV_CC_SetEnumValue(camHandle, "LineSource", this->hikcamera_param.LineSource);
         // if(nRet != MV_OK)
@@ -507,88 +510,79 @@ CAMERA_INFO HikCamera::start_grab()
 }
 
 
-sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS_sync(_GPRMC_TIME_STAMP_ *GPRMC_ptr)
-{
-    void* pUser = cameraInfo.pUser;
+// sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS_sync(GPRMC_TIME_STAMP *GPRMC_ptr)
+// {
+//     void* pUser = cameraInfo.pUser;
 
-    // Get payload size
-    MVCC_INTVALUE stParam;
-    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
-    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
-    if (MV_OK != nRet) {
-        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
-        return sensor_msgs::ImagePtr(); 
-    }
+//     // Get payload size
+//     MVCC_INTVALUE stParam;
+//     memset(&stParam, 0, sizeof(MVCC_INTVALUE));
+//     int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
+//     if (MV_OK != nRet) {
+//         printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
+//         return sensor_msgs::ImagePtr(); 
+//     }
 
-    MV_FRAME_OUT stImageInfo = {0};
-    nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
-    if (nRet != MV_OK) {
-        printf("Get Image fail! nRet [0x%x]\n", nRet);
-        return sensor_msgs::ImagePtr(); 
-    }
+//     MV_FRAME_OUT stImageInfo = {0};
+//     nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
+//     if (nRet != MV_OK) {
+//         printf("Get Image fail! nRet [0x%x]\n", nRet);
+//         return sensor_msgs::ImagePtr(); 
+//     }
 
-    auto time_pc_clk = std::chrono::high_resolution_clock::now();
-    int64_t b = GPRMC_ptr->low;
-    // printf("b:%d\n", b);
+//     auto time_pc_clk = std::chrono::high_resolution_clock::now();
+//     int64_t b = GPRMC_ptr->low;
+//     // printf("b:%d\n", b);
 
-    double time_pc = b / 1000000000.0;
-    ros::Time rcv_time = ros::Time(time_pc);
+//     double time_pc = b / 1000000000.0;
+//     ros::Time rcv_time = ros::Time(time_pc);
     
 
-    // Log retrieved frame information
-    std::string debug_msg;
-    debug_msg = "GetOneFrame,nFrameNum[" +
-                  std::to_string(stImageInfo.stFrameInfo.nFrameNum) + "], FrameTime: [" +
-                  std::to_string(rcv_time.toSec()) + "], Width: [" +
-                  std::to_string(stImageInfo.stFrameInfo.nWidth) + "], Height: [" +
-                  std::to_string(stImageInfo.stFrameInfo.nHeight) + "], nFrameLen: [" +
-                  std::to_string(stImageInfo.stFrameInfo.nFrameLen);
-      ROS_INFO_STREAM(debug_msg.c_str());
+//     // Log retrieved frame information
+//     std::string debug_msg;
+//     debug_msg = "GetOneFrame,nFrameNum[" +
+//                   std::to_string(stImageInfo.stFrameInfo.nFrameNum) + "], FrameTime: [" +
+//                   std::to_string(rcv_time.toSec()) + "], Width: [" +
+//                   std::to_string(stImageInfo.stFrameInfo.nWidth) + "], Height: [" +
+//                   std::to_string(stImageInfo.stFrameInfo.nHeight) + "], nFrameLen: [" +
+//                   std::to_string(stImageInfo.stFrameInfo.nFrameLen);
+//       ROS_INFO_STREAM(debug_msg.c_str());
 
 
-    if (stImageInfo.pBufAddr != NULL) {
-        nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
-        if (nRet != MV_OK) {
-            printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
-        }
-    }
+//     if (stImageInfo.pBufAddr != NULL) {
+//         nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
+//         if (nRet != MV_OK) {
+//             printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
+//         }
+//     }
 
-    // Convert Bayer GB format to BGR format
-    cv::Mat imgBayerGB(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC1, stImageInfo.pBufAddr);
-    cv::Mat imgBGR;
-    cv::cvtColor(imgBayerGB, imgBGR, cv::COLOR_BayerGB2BGR);
+//     // Convert Bayer GB format to BGR format
+//     cv::Mat imgBayerGB(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC1, stImageInfo.pBufAddr);
+//     cv::Mat imgBGR;
+//     cv::cvtColor(imgBayerGB, imgBGR, cv::COLOR_BayerGB2BGR);
 
-    // Apply undistortion if required
-    cv::Mat cvImageOutput;
-    if (this->undistortion) {
-        cv::remap(imgBGR, cvImageOutput, this->map1, this->map2, this->interpolation);
-    } else {
-        cvImageOutput = imgBGR;
-    }
+//     // Apply undistortion if required
+//     cv::Mat cvImageOutput;
+//     if (this->undistortion) {
+//         cv::remap(imgBGR, cvImageOutput, this->map1, this->map2, this->interpolation);
+//     } else {
+//         cvImageOutput = imgBGR;
+//     }
 
-    // Convert OpenCV image to ROS message
-    sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImageOutput).toImageMsg();
-    pRosImg->header.stamp = rcv_time;
+//     // Convert OpenCV image to ROS message
+//     sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImageOutput).toImageMsg();
+//     pRosImg->header.stamp = rcv_time;
 
-    // Update camera initialization info
-    cameraInfo.pUser = pUser;
-    cameraInfo.stImageInfo = stImageInfo;
-    cameraInfo.pImageCache = stImageInfo.pBufAddr;
+//     // Update camera initialization info
+//     cameraInfo.pUser = pUser;
+//     cameraInfo.stImageInfo = stImageInfo;
+//     cameraInfo.pImageCache = stImageInfo.pBufAddr;
 
-    return pRosImg;
-}
+//     return pRosImg;
+// }
 sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS()
 {
     void* pUser = cameraInfo.pUser;
-
-    // Get payload size
-    MVCC_INTVALUE stParam;
-    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
-    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
-    if (MV_OK != nRet) {
-        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
-        return sensor_msgs::ImagePtr(); 
-    }
 
     MV_FRAME_OUT stImageInfo = {0};
     nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
@@ -647,15 +641,6 @@ sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS()
 sensor_msgs::ImagePtr HikCamera::grabOneFrame2ROS(bool undistortion, int interpolation)
 {
     void* pUser = cameraInfo.pUser;
-
-    // Get payload size
-    MVCC_INTVALUE stParam;
-    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
-    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
-    if (MV_OK != nRet) {
-        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
-        return sensor_msgs::ImagePtr(); 
-    }
 
     MV_FRAME_OUT stImageInfo = {0};
     nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
@@ -723,15 +708,6 @@ cv::Mat HikCamera::grabOneFrame2Mat()
 
     void* pUser = cameraInfo.pUser;
 
-    // Get payload size
-    MVCC_INTVALUE stParam;
-    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
-    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
-    if (MV_OK != nRet) {
-        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
-        return cv::Mat(); 
-    }
-
     MV_FRAME_OUT stImageInfo = {0};
     nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
     if (nRet != MV_OK) {
@@ -793,15 +769,6 @@ cv::Mat HikCamera::grabOneFrame2Mat()
 cv::Mat HikCamera::grabOneFrame2Mat(bool undistortion, int interpolation)
 {
     void* pUser = cameraInfo.pUser;
-
-    // Get payload size
-    MVCC_INTVALUE stParam;
-    memset(&stParam, 0, sizeof(MVCC_INTVALUE));
-    int nRet = MV_CC_GetIntValue(pUser, "PayloadSize", &stParam);
-    if (MV_OK != nRet) {
-        printf("Get PayloadSize fail! nRet [0x%x]\n", nRet);
-        return cv::Mat(); 
-    }
 
     MV_FRAME_OUT stImageInfo = {0};
     nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
@@ -926,4 +893,141 @@ void HikCamera::printParam(){
     printf("BayerCvtQuality: %d\n", this->hikcamera_param.bayerCvtQuality);
 
     printf("undistortion: %d\n", this->undistortion); 
+}
+
+
+
+
+
+int HikCameraSync::initTimeSync(uint8_t baudrate_index, uint8_t parity, const std::string& shm_name) {
+
+    timesync_ = TimeSync::GetInstance();
+    if (timesync_->InitTimeSync(timesync_config_)) {
+      printf("Timesync init fail\n");
+      return -1;
+    }
+
+    if (timesync_->SetReceiveSyncTimeCb(ReceiveSyncTimeCallback, this)) {
+      printf("Set Timesync callback fail\n");
+      return -1;
+    }
+
+    timesync_->StartTimesync();
+
+    return 0;
+}
+int HikCameraSync::initCameraSetting()
+{
+    CAMERA_INFO cameraInfo = this->camera_init();
+    int nRet = this->setCameraParam();
+    if(MV_OK != nRet){
+        printf("Error Occurred in hikcamera parameters setting!\n");
+        getchar();
+    }
+
+    get_frame_wt_ = std::make_shared<std::thread>(std::bind(&HikCameraSync::GetFrameWorkThread, this));
+}
+int HikCameraSync::startSyncFrameGrab()
+{
+    CAMERA_INFO cameraInfo = this->start_grab();
+    start_get_frame_wt_ = true;
+    
+}
+int HikCameraSync::stopSyncFrameGrab()
+{
+    start_get_frame_wt_ = false;
+    exit_get_frame_wt_ = true;
+    if (get_frame_wt_) {
+        get_frame_wt_->join();
+        get_frame_wt_ = nullptr;
+    }
+}
+
+
+void HikCameraSync::ReceiveSyncTimeCallback(uint64_t gps_time_ns, void *client_data) {
+    HikCameraSync *hikcamera_handler = static_cast<HikCameraSync *>(client_data);
+    // std::unique_lock<std::mutex> lock(sync_mtx_);
+//   LidarDevice *p_lidar = nullptr;
+//   for (uint8_t handle = 0; handle < kMaxLidarCount; handle++) {
+//     p_lidar = &(lds_lidar->lidars_[handle]);
+//     if (p_lidar->connect_state == kConnectStateSampling &&
+//         p_lidar->info.state == kLidarStateNormal) {
+//       livox_status status = LidarSetRmcSyncTime(handle, rmc, rmc_length,
+//                                                 SetRmcSyncTimeCb, lds_lidar);
+//       if (status != kStatusSuccess) {
+//         printf("Set GPRMC synchronization time error code: %d.\n", status);
+//       }
+//     }
+//   }
+}
+
+void HikCameraSync::GetFrameWorkThread()
+{
+    while (!start_get_frame_wt_) {
+        /* waiting to start */
+    }
+
+    while(1) {
+
+        void* pUser = cameraInfo.pUser;
+
+        int nRet = MV_OK;
+
+        MV_FRAME_OUT stImageInfo = {0};
+        nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
+        if (nRet != MV_OK) {
+            printf("Get Image fail! nRet [0x%x]\n", nRet);
+            return; 
+        }
+
+        auto time_pc_clk = std::chrono::high_resolution_clock::now();;
+        int64_t gps_time_ns = gps_time_ns_;
+        // printf("b:%d\n", b);
+
+        double time_pc = gps_time_ns / 1000000000.0;
+        ros::Time rcv_time = ros::Time(time_pc);
+        
+
+        // Log retrieved frame information
+        std::string debug_msg;
+        debug_msg = "GetOneFrame,nFrameNum[" +
+                    std::to_string(stImageInfo.stFrameInfo.nFrameNum) + "], FrameTime: [" +
+                    std::to_string(rcv_time.toSec()) + "], Width: [" +
+                    std::to_string(stImageInfo.stFrameInfo.nWidth) + "], Height: [" +
+                    std::to_string(stImageInfo.stFrameInfo.nHeight) + "], nFrameLen: [" +
+                    std::to_string(stImageInfo.stFrameInfo.nFrameLen);
+        ROS_INFO_STREAM(debug_msg.c_str());
+
+
+        if (stImageInfo.pBufAddr != NULL) {
+            nRet = MV_CC_FreeImageBuffer(pUser, &stImageInfo);
+            if (nRet != MV_OK) {
+                printf("Free Image Buffer fail! nRet [0x%x]\n", nRet);
+            }
+        }
+
+        // Convert Bayer GB format to BGR format
+        cv::Mat imgBayerGB(stImageInfo.stFrameInfo.nHeight, stImageInfo.stFrameInfo.nWidth, CV_8UC1, stImageInfo.pBufAddr);
+        cv::Mat imgBGR;
+        cv::cvtColor(imgBayerGB, imgBGR, cv::COLOR_BayerGB2BGR);
+
+        // Apply undistortion if required
+        cv::Mat cvImageOutput;
+        if (this->undistortion) {
+            cv::remap(imgBGR, cvImageOutput, this->map1, this->map2, this->interpolation);
+        } else {
+            cvImageOutput = imgBGR;
+        }
+
+        // Convert OpenCV image to ROS message
+        sensor_msgs::ImagePtr pRosImg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", cvImageOutput).toImageMsg();
+        pRosImg->header.stamp = rcv_time;
+
+        // Update camera initialization info
+        cameraInfo.pUser = pUser;
+        cameraInfo.stImageInfo = stImageInfo;
+        cameraInfo.pImageCache = stImageInfo.pBufAddr;
+
+        return;
+    }
 }
