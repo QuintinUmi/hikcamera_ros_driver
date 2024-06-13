@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     cv::Mat cvImage;
     sensor_msgs::Image imgOneFrame;
     sensor_msgs::ImagePtr imgMsg;
-    CAMERA_INFO cameraInfo = hikCamera.camera_init();
+    CAMERA_INFO cameraInfo = hikCamera.initDevice();
 
     cv::String filePath, fileName;
 

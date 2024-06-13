@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 
     int nRet = MV_OK;
     sensor_msgs::Image imgOneFrame;
-    CAMERA_INFO cameraInfo = hikCamera.camera_init();
+    CAMERA_INFO cameraInfo = hikCamera.initDevice();
 
     image_transport::ImageTransport imgIt(rosHandle);
     image_transport::Publisher imgPub = imgIt.advertise(image_publish_topic, 2);

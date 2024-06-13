@@ -6,6 +6,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <image_transport/image_transport.h>
 
 #include <fcntl.h>
 #include <sys/ipc.h>
@@ -69,8 +70,7 @@ namespace hikcamera_opr
             bool PrintDeviceInfo(MV_CC_DEVICE_INFO* pstMVDevInfo);
 
 
-            CAMERA_INFO camera_init();
-
+            CAMERA_INFO initDevice();
 
             int setCameraParam();
             int setCameraParam(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable, int FrameRate, int ExposureTime, 
@@ -148,35 +148,23 @@ namespace hikcamera_opr
                 uint64_t sync_time_stamp;
                 volatile bool is_sync_base;
 
-                FramePacket(const std::shared_ptr<cv::Mat>& img, uint32_t frame_seq, CLK::time_point frame_rcv_time)
-                    : image(img), seq(frame_seq), rcv_time(frame_rcv_time), is_sync_base(false) {}
+                FramePacket(const cv::Mat& img, uint32_t frame_seq, CLK::time_point frame_rcv_time)
+                    : image(std::make_shared<cv::Mat>(img)), seq(frame_seq), rcv_time(frame_rcv_time), is_sync_base(false) {}
             };
 
             typedef void (*PublishCb)(FramePacket frame_pkg, uint64_t time_stamp, void* client_data);
 
-            HikCameraSync() : HikCamera(), exit_get_frame_wt_(false), start_get_frame_wt_(false) {};
-            HikCameraSync(ros::NodeHandle &nodeHandle, int cameraIndex) : HikCamera(nodeHandle, cameraIndex), 
-                                                                        exit_get_frame_wt_(false), start_get_frame_wt_(false) {};
+            HikCameraSync() : HikCamera() {};
+            HikCameraSync(ros::NodeHandle &nodeHandle, int cameraIndex) : HikCamera(nodeHandle, cameraIndex) {};
             HikCameraSync(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable = true, int FrameRate = 80, int ExposureTime = 5000, 
                         int GainAuto = 2, int bayerCvtQuality = 1, bool undistortion = false, double alpha = 1.0)
                         : HikCamera(width, height, Offset_x, Offset_y, FrameRateEnable, FrameRate, ExposureTime, 
-                        GainAuto, bayerCvtQuality , undistortion, alpha), 
-                        exit_get_frame_wt_(false), start_get_frame_wt_(false) {};
+                        GainAuto, bayerCvtQuality , undistortion, alpha) {};
 
             ~HikCameraSync() override = default;
 
-            int32_t SetPublishCb(PublishCb cb, void *data) {
-            if ((cb != nullptr) || (data != nullptr)) {
-                    pub_cb_ = cb;
-                    client_data_ = data;
-                    return 0;
-                } else {
-                    return -1;
-                }
-            }
-
-            int initTimeSync(uint32_t freq, uint8_t baudrate_index, uint8_t parity, const std::string& shm_name);
-            int initCameraSetting(std::string publish_topic = "/hikcamera/img_stream");
+            int initTimeSync(uint32_t freq, const std::string& device_name, uint8_t baudrate_index, uint8_t parity, const std::string& shm_name = "None");
+            int initCameraSettingSync(std::string publish_topic = "/hikcamera/img_stream");
             int startSyncFrameGrab();
             int stopSyncFrameGrab();
 
@@ -187,7 +175,6 @@ namespace hikcamera_opr
             NS ideal_interval_;
             uint64_t offset_shutter_time_;
 
-            // std::shared_ptr<UserUart> uart_;
             std::shared_ptr<ShmHandler<TIME_STAMP>> shm_;
 
             TimeSync *timesync_;
@@ -212,19 +199,29 @@ namespace hikcamera_opr
             volatile bool sync_flag_;
 
             std::shared_ptr<std::thread> get_frame_wt_;
-            volatile bool exit_get_frame_wt_;
-            volatile bool start_get_frame_wt_;
+            std::atomic<bool> exit_get_frame_wt_;
+            std::atomic<bool> start_get_frame_wt_;
 
             std::shared_ptr<std::thread> queue_process_wt_;
-            volatile bool exit_queue_process_wt_;
-            volatile bool start_queue_process_wt_;
+            std::atomic<bool> exit_queue_process_wt_;
+            std::atomic<bool> start_queue_process_wt_;
 
-            ros::Publisher pub_handler_;
+            image_transport::Publisher pub_handler_;
             PublishCb pub_cb_;
             void *client_data_;
 
             std::mutex queue_mtx_;
             std::condition_variable queue_cond_var_;
+
+            int32_t SetPublishCb(PublishCb cb, void *data) {
+            if ((cb != nullptr) || (data != nullptr)) {
+                    pub_cb_ = cb;
+                    client_data_ = data;
+                    return 0;
+                } else {
+                    return -1;
+                }
+            }
 
             static void ReceiveSyncTimeCallback(uint64_t gps_time, 
                                                 CLK::time_point gps_rcv_time, 

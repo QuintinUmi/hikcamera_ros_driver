@@ -31,6 +31,8 @@
 #include <functional>
 #include <thread>
 #include <iostream>
+#include <vector>
+#include <sstream>
 
 namespace livox_ros {
 using namespace std;
@@ -127,39 +129,62 @@ void TimeSync::PollStateLoop() {
 uint64_t TimeSync::ProcessRMCData(const char* rmc, uint32_t rmc_length) {
     std::string rmc_data(rmc, rmc_length);
 
-    size_t time_pos = rmc_data.find(',') + 1;
-    size_t date_pos = rmc_data.find_last_of(',') - 6;
+    printf("] received GPRMC data: %s\n", rmc_data.c_str());
 
-    if (time_pos == std::string::npos || date_pos == std::string::npos) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::stringstream tokenStream(rmc_data);
+    while (std::getline(tokenStream, token, ',')) {
+        tokens.push_back(token);
+    }
+
+    if (tokens.size() < 10) {
         std::cerr << "Invalid RMC data format." << std::endl;
         return 1;
     }
 
-    std::string time_str = rmc_data.substr(time_pos, 9);
-    std::string date_str = rmc_data.substr(date_pos, 6);
+    std::string time_str = tokens[1];
+    std::string date_str = tokens[9];
 
-    int hours = stoi(time_str.substr(0, 2));
-    int minutes = stoi(time_str.substr(2, 2));
-    int seconds = stoi(time_str.substr(4, 2));
-    int milliseconds = stoi(time_str.substr(7, 2)) * 10; 
+    try {
+        int hours = stoi(time_str.substr(0, 2));
+        int minutes = stoi(time_str.substr(2, 2));
+        int seconds = stoi(time_str.substr(4, 2));
+        int milliseconds = 0;
 
-    int day = stoi(date_str.substr(0, 2));
-    int month = stoi(date_str.substr(2, 2));
-    int year = stoi(date_str.substr(4, 2)) + 2000; 
+        if (time_str.size() > 6) {
+            milliseconds = stoi(time_str.substr(7, 2)) * 10; 
+        }
 
-    std::tm t = {};
-    t.tm_year = year - 1900; 
-    t.tm_mon = month - 1;    
-    t.tm_mday = day;
-    t.tm_hour = hours;
-    t.tm_min = minutes;
-    t.tm_sec = seconds;
+        int day = stoi(date_str.substr(0, 2));
+        int month = stoi(date_str.substr(2, 2));
+        int year = stoi(date_str.substr(4, 2)) + 2000; 
 
-    std::time_t time_epoch = std::mktime(&t);
+        std::tm t = {};
+        t.tm_year = year - 1900; 
+        t.tm_mon = month - 1;    
+        t.tm_mday = day;
+        t.tm_hour = hours;
+        t.tm_min = minutes;
+        t.tm_sec = seconds;
 
-    uint64_t timestamp_ns = static_cast<uint64_t>(time_epoch) * 1000000000 + milliseconds * 1000000;
+        std::time_t time_epoch = std::mktime(&t);
 
-    return timestamp_ns;
+        if (time_epoch == -1) {
+            std::cerr << "Failed to convert time to epoch." << std::endl;
+            return 1;
+        }
+
+        uint64_t timestamp_ns = static_cast<uint64_t>(time_epoch) * 1000000000 + milliseconds * 1000000;
+
+        return timestamp_ns;
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "Invalid argument: " << e.what() << std::endl;
+    } catch (const std::out_of_range& e) {
+        std::cerr << "Out of range: " << e.what() << std::endl;
+    }
+
+    return 1;
 }
 void TimeSync::PollDataLoop() {
   while (!start_poll_data_) {
@@ -183,9 +208,13 @@ void TimeSync::PollDataLoop() {
             if (((fn_cb_ != nullptr) || (client_data_ != nullptr))) {
               if ((strstr((const char *)packet.data, "$GPRMC")) ||
                       (strstr((const char *)packet.data , "$GNRMC"))){
+                printf("At time [%ld", gps_rcv_time.time_since_epoch().count());
                 uint64_t gps_time_ns = ProcessRMCData((const char *)packet.data, packet.data_len);
+                if (gps_time_ns == 1) {
+                  continue;
+                }
                 fn_cb_(gps_time_ns, gps_rcv_time, client_data_);
-                printf("RMC data parse success!.\n");
+                printf("RMC data parse success!. Gps_time_ns [%ld]\n", gps_time_ns);
               }
             }
           }

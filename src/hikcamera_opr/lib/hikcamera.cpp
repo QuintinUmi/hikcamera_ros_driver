@@ -136,7 +136,7 @@ bool HikCamera::PrintDeviceInfo(MV_CC_DEVICE_INFO* pstMVDevInfo)
     return true;
 }
 
-CAMERA_INFO HikCamera::camera_init()
+CAMERA_INFO HikCamera::initDevice()
 {
     MV_CC_DEVICE_INFO_LIST stDeviceList;
     memset(&stDeviceList, 0, sizeof(MV_CC_DEVICE_INFO_LIST));
@@ -209,14 +209,6 @@ CAMERA_INFO HikCamera::camera_init()
         {
             printf("Warning: Get Packet Size fail nRet [0x%x]!\n", nPacketSize);
         }
-    }
-		
-    // 设置触发模式为off
-    // set trigger mode as off
-    nRet = MV_CC_SetEnumValue(camHandle, "TriggerMode", 0);
-    if (MV_OK != nRet)
-    {
-        printf("MV_CC_SetTriggerMode fail! nRet [%x]\n", nRet);
     }
 
     cameraInfo.pUser = camHandle;
@@ -901,7 +893,7 @@ void HikCamera::printParam(){
 
 
 
-int HikCameraSync::initTimeSync(uint32_t freq, uint8_t baudrate_index, uint8_t parity, const std::string& shm_name) {
+int HikCameraSync::initTimeSync(uint32_t freq, const std::string& device_name, uint8_t baudrate_index, uint8_t parity, const std::string& shm_name) {
 
     freq_ = freq;
     ideal_interval_ = NS(1000000000 / freq_);
@@ -911,7 +903,7 @@ int HikCameraSync::initTimeSync(uint32_t freq, uint8_t baudrate_index, uint8_t p
     sync_flag_ = false;
 
     timesync_config_.dev_config.type = kCommDevUart;
-    std::strcpy(timesync_config_.dev_config.name, std::string("gprmc_serial").c_str());
+    std::strcpy(timesync_config_.dev_config.name, device_name.c_str());
     timesync_config_.dev_config.config.uart.baudrate = baudrate_index;
     timesync_config_.dev_config.config.uart.parity = parity;
 
@@ -925,35 +917,44 @@ int HikCameraSync::initTimeSync(uint32_t freq, uint8_t baudrate_index, uint8_t p
       printf("Set Timesync callback fail\n");
       return -1;
     }
-
-    timesync_->StartTimesync();
-
+    
     return 0;
 }
-int HikCameraSync::initCameraSetting(std::string publish_topic)
+int HikCameraSync::initCameraSettingSync(std::string publish_topic)
 {
-    CAMERA_INFO cameraInfo = this->camera_init();
+    CAMERA_INFO cameraInfo = this->initDevice();
     int nRet = this->setCameraParam();
     if(MV_OK != nRet){
         printf("Error Occurred in hikcamera parameters setting!\n");
         getchar();
+        return -1;
     }
 
-    pub_handler_ = getRosHandler().advertise<sensor_msgs::Image>(publish_topic, 2);
+    image_transport::ImageTransport it(getRosHandler());
+    pub_handler_ = it.advertise(publish_topic, 1);
 
     get_frame_wt_ = std::make_shared<std::thread>(std::bind(&HikCameraSync::GetFrameWorkThread, this));
     queue_process_wt_ = std::make_shared<std::thread>(std::bind(&HikCameraSync::QueueProcessWorkThread, this));
 
+    return 0;
 }
 int HikCameraSync::startSyncFrameGrab()
 {
-    SetPublishCb(PublishCallBack, this);
+    if (SetPublishCb(PublishCallBack, this) != 0) {
+        printf("Error Occurred in setting PublishCallBack!\n");
+        getchar();
+        return -1;
+    }
 
     CAMERA_INFO cameraInfo = this->start_grab();
+    timesync_->StartTimesync();
     seq_ = 0;
+    exit_get_frame_wt_ = false;
     start_get_frame_wt_ = true;
+    exit_queue_process_wt_ = false;
     start_queue_process_wt_ = true;
     
+    return 0;
 }
 int HikCameraSync::stopSyncFrameGrab()
 {
@@ -972,42 +973,52 @@ int HikCameraSync::stopSyncFrameGrab()
 
     pub_cb_ = nullptr;
     client_data_ = nullptr;
+
+    this->stop_grab();
+
+    return 0;
 }
 
 
 void HikCameraSync::ReceiveSyncTimeCallback(uint64_t gps_time_stamp, 
                                             CLK::time_point gps_rcv_time, 
                                             void *client_data) {
+    ROS_WARN("Enter HikCameraSync::ReceiveSyncTimeCallback\n");
+    HikCameraSync *cam_h = static_cast<HikCameraSync *>(client_data);
 
-    HikCameraSync *cam_handler = static_cast<HikCameraSync *>(client_data);
-
-    std::lock_guard<std::mutex> lock(cam_handler->sync_mtx_);
-    cam_handler->last_gps_rcv_time_ = cam_handler->gps_rcv_time_;
-    cam_handler->gps_rcv_time_ = gps_rcv_time;
-    cam_handler->last_gps_time_stamp_ = cam_handler->gps_time_stamp_;
-    cam_handler->gps_time_stamp_ = gps_time_stamp;
-    cam_handler->is_gps_update_ = true;
+    std::lock_guard<std::mutex> lock(cam_h->sync_mtx_);
+    cam_h->last_gps_rcv_time_ = cam_h->gps_rcv_time_;
+    cam_h->gps_rcv_time_ = gps_rcv_time - cam_h->offset_serial_time_;
+    cam_h->last_gps_time_stamp_ = cam_h->gps_time_stamp_;
+    cam_h->gps_time_stamp_ = gps_time_stamp;
+    cam_h->is_gps_update_ = true;
 }
 void HikCameraSync::SyncStatusQueryLoop() {
+    ROS_WARN("Enter HikCameraSync::SyncStatusQueryLoop\n");
+    {
+        std::lock_guard<std::mutex> lock(sync_mtx_);
+        auto gps_rcv_time = gps_rcv_time_;
+        auto last_gps_rcv_time = last_gps_rcv_time_;
+        NS diff = std::chrono::duration_cast<NS>(gps_rcv_time_.time_since_epoch() - last_gps_rcv_time_.time_since_epoch());
 
-    std::lock_guard<std::mutex> lock(sync_mtx_);
-    NS diff = std::chrono::duration_cast<NS>(gps_rcv_time_.time_since_epoch() - last_gps_rcv_time_.time_since_epoch());
+        if ((CLK::now() - offset_serial_time_).time_since_epoch() - gps_rcv_time_.time_since_epoch() > ideal_interval_ * 15) {
 
-    if (CLK::now().time_since_epoch() - gps_rcv_time_.time_since_epoch() > ideal_interval_ * 15) {
+            sync_flag_ = 0;
+            last_gps_rcv_time_ = gps_rcv_time_;
+            gps_rcv_time_ = CLK::time_point();
+            return;
+        }
+        if (-NS(ideal_interval_ * 15) > diff || diff > NS(ideal_interval_ * 15)) {
 
-        sync_flag_ = 0;
-        last_gps_rcv_time_ = gps_rcv_time_;
-        gps_rcv_time_ = CLK::time_point();
-        return;
+            sync_flag_ = 0;
+            return;
+        }
+
+        sync_flag_ = 1;
+        stamp_scale_ = NS(1000000000).count() / diff.count();
     }
-    if (-NS(ideal_interval_ * 15) > diff || diff > NS(ideal_interval_ * 15)) {
 
-        sync_flag_ = 0;
-        return;
-    }
-
-    sync_flag_ = 1;
-    stamp_scale_ = NS(1000000000).count() / diff.count();
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 
@@ -1019,18 +1030,18 @@ void HikCameraSync::GetFrameWorkThread() {
     while (!start_get_frame_wt_) {
         /* waiting to start */
     }
-
-    while(1) {
-
+    std::cout << exit_get_frame_wt_ << std::endl;
+    while(exit_get_frame_wt_) {
+ROS_WARN("Enter HikCameraSync::GetFrameWorkThread\n");
         void* pUser = cameraInfo.pUser;
 
         int nRet = MV_OK;
 
         MV_FRAME_OUT stImageInfo = {0};
-        nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, 1000); // Timeout set to 1000 ms
+        nRet = MV_CC_GetImageBuffer(pUser, &stImageInfo, ideal_interval_.count() * 2); 
         if (nRet != MV_OK) {
             printf("Get Image fail! nRet [0x%x]\n", nRet);
-            return; 
+            continue;
         }
         
         auto image_rcv_time = CLK::now();
@@ -1056,7 +1067,7 @@ void HikCameraSync::GetFrameWorkThread() {
                     std::to_string(std::chrono::duration_cast<NS>(image_rcv_time.time_since_epoch()).count()) + "], Width: [" +
                     std::to_string(stImageInfo.stFrameInfo.nWidth) + "], Height: [" +
                     std::to_string(stImageInfo.stFrameInfo.nHeight) + "], nFrameLen: [" +
-                    std::to_string(stImageInfo.stFrameInfo.nFrameLen);
+                    std::to_string(stImageInfo.stFrameInfo.nFrameLen)+ "]";
         ROS_INFO_STREAM(debug_msg.c_str());
 
 
@@ -1084,7 +1095,8 @@ void HikCameraSync::GetFrameWorkThread() {
             std::lock_guard<std::mutex> lock(queue_mtx_);
             queue_.emplace_back(cvImageOutput, seq_, image_rcv_time);
             if (queue_.size() > freq_ * 2) {
-                printf("Warning! Out of maximum queue size for process!\n");
+                printf("Warning! Out of maximum queue size for process! queue_size: [%ld]\n", queue_.size());
+                queue_.pop_front();
                 // cvImageOutput;
             }
         }
@@ -1095,88 +1107,115 @@ void HikCameraSync::GetFrameWorkThread() {
         cameraInfo.stImageInfo = stImageInfo;
         cameraInfo.pImageCache = stImageInfo.pBufAddr;
 
-        return;
     }
 }
 
 void HikCameraSync::QueueProcessWorkThread() {
+    return;
+    while (!start_queue_process_wt_) {
 
-    static uint64_t last_time_stamp = 0;
-    static CLK::time_point last_rcv_time;
-
-    std::unique_lock<std::mutex> sync_lock(sync_mtx_);
-    if (!sync_flag_) {
-        std::unique_lock<std::mutex> queue_lock(queue_mtx_);
-        FramePacket frame_pkg = queue_.front();
-        queue_.pop_front(); 
-        queue_lock.unlock();
-        if (last_time_stamp == 0) {
-            last_rcv_time = frame_pkg.rcv_time;
-            last_time_stamp = base_time_stamp_;
-            return;
-        }
-        uint64_t time_stamp = last_time_stamp
-                            + NS(frame_pkg.rcv_time.time_since_epoch() - last_rcv_time.time_since_epoch()).count() 
-                            * stamp_scale_;
-
-        pub_cb_(frame_pkg, time_stamp, this);
-        last_time_stamp = time_stamp;
-        last_rcv_time = frame_pkg.rcv_time;
-           
-    } else {
-        std::unique_lock<std::mutex> queue_lock(queue_mtx_);
-        if(is_gps_update_) {
-            NS diff;
-            NS min_diff = NS::max();
-            uint32_t min_idx = 0;      
-            for (int i = 0; i < queue_.size(); i++) {
-                FramePacket frame_pkg = queue_[i];
-                diff = frame_pkg.rcv_time.time_since_epoch()
-                    - (gps_rcv_time_ - offset_serial_time_).time_since_epoch();
-                if (diff < NS(0)) {
-                    diff = -diff;
-                }
-                if (diff < min_diff) {
-                    min_diff = diff;
-                    min_idx = i;
-                }
-            }
-
-            if (min_diff < ideal_interval_ / 2) {
-                FramePacket& frame_pkg = queue_[min_idx];
-                frame_pkg.is_sync_base = true;
-                frame_pkg.sync_time_stamp = gps_time_stamp_;
-            } else {
-                queue_cond_var_.wait(queue_lock, [this, queue_size = queue_.size()]{ return queue_.size() > queue_size; });
-                FramePacket& frame_pkg = queue_[min_idx + 1];
-                diff = frame_pkg.rcv_time.time_since_epoch()
-                    - (gps_rcv_time_ - offset_serial_time_).time_since_epoch();
-                if (diff < NS(0)) {
-                    diff = -diff;
-                }
-                if (min_diff < ideal_interval_ / 2) {
-                    FramePacket& frame_pkg = queue_[min_idx];
-                    frame_pkg.is_sync_base = true;
-                    frame_pkg.sync_time_stamp = gps_time_stamp_;
-                } else {
-                    printf("Error in gps time stamp match!\n");
-                    return;
-                }
-            }
-            
-        }
-        sync_lock.unlock();
-        
-        
-        
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    while (!exit_queue_process_wt_) {
+ROS_WARN("Enter HikCameraSync::QueueProcessWorkThread\n");
+        static uint64_t last_time_stamp = 0;
+        static CLK::time_point last_rcv_time;
+
+        if (queue_.empty()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            return;
+        }
+
+        std::unique_lock<std::mutex> sync_lock(sync_mtx_);
+        if (!sync_flag_) {
+            // std::unique_lock<std::mutex> queue_lock(queue_mtx_);
+            FramePacket frame_pkt = queue_.front();
+            queue_.pop_front(); 
+            // queue_lock.unlock();
+            if (last_time_stamp == 0) {
+                last_rcv_time = frame_pkt.rcv_time;
+                last_time_stamp = base_time_stamp_;
+                return;
+            }
+            uint64_t time_stamp = last_time_stamp
+                                + NS(frame_pkt.rcv_time.time_since_epoch() - last_rcv_time.time_since_epoch()).count() 
+                                * stamp_scale_;
+
+            pub_cb_(frame_pkt, time_stamp, this);
+            last_time_stamp = time_stamp;
+            last_rcv_time = frame_pkt.rcv_time;
+            
+        } else {
+            // std::unique_lock<std::mutex> queue_lock(queue_mtx_);
+            if(is_gps_update_) {
+                NS diff;
+                NS min_diff = NS::max();
+                uint32_t min_idx = 0;      
+                for (int i = 0; i < queue_.size(); i++) {
+                    FramePacket frame_pkt = queue_[i];
+                    diff = frame_pkt.rcv_time.time_since_epoch()
+                        - gps_rcv_time_.time_since_epoch();
+                    if (diff < NS(0)) {
+                        diff = -diff;
+                    }
+                    if (diff < min_diff) {
+                        min_diff = diff;
+                        min_idx = i;
+                    }
+                }
+
+                if (min_diff < ideal_interval_ / 2) {
+                    FramePacket& frame_pkt = queue_[min_idx];
+                    frame_pkt.is_sync_base = true;
+                    frame_pkt.sync_time_stamp = gps_time_stamp_;
+                } else {
+                    auto queue_size = queue_.size();
+                    // queue_cond_var_.wait(queue_lock, [this, queue_size]{ return queue_.size() > queue_size; });
+                    FramePacket& frame_pkt = queue_[min_idx + 1];
+                    diff = frame_pkt.rcv_time.time_since_epoch()
+                        - gps_rcv_time_.time_since_epoch();
+                    if (diff < NS(0)) {
+                        diff = -diff;
+                    }
+                    if (min_diff < ideal_interval_ / 2) {
+                        FramePacket& frame_pkt = queue_[min_idx];
+                        frame_pkt.is_sync_base = true;
+                        frame_pkt.sync_time_stamp = gps_time_stamp_;
+                    } else {
+                        printf("Error in gps time stamp match!\n");
+                        return;
+                    }
+                }
+                is_gps_update_ = false;
+            }
+            sync_lock.unlock();
+            
+            FramePacket frame_pkt = queue_.front();
+            queue_.pop_front();
+            // queue_lock.unlock();
+
+            if (frame_pkt.is_sync_base) {
+                last_time_stamp = frame_pkt.sync_time_stamp + offset_shutter_time_;
+                last_rcv_time = frame_pkt.rcv_time;
+            } 
+
+            uint64_t time_stamp = last_time_stamp
+                                + NS(frame_pkt.rcv_time.time_since_epoch() - last_rcv_time.time_since_epoch()).count() 
+                                * stamp_scale_;
+
+            pub_cb_(frame_pkt, time_stamp, this);
+            last_time_stamp = time_stamp;
+            last_rcv_time = frame_pkt.rcv_time;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    
 }
 
 void HikCameraSync::PublishCallBack(FramePacket frame_pkt, uint64_t time_stamp, void* client_data) {
-
-    HikCameraSync *cam_handler = static_cast<HikCameraSync *>(client_data);
+    ROS_WARN("Enter HikCameraSync::PublishCallBack\n");
+    HikCameraSync *cam_h = static_cast<HikCameraSync *>(client_data);
 
     ros::Time stamp(time_stamp / 1000000000);
     std::string debug_msg;
@@ -1188,5 +1227,5 @@ void HikCameraSync::PublishCallBack(FramePacket frame_pkt, uint64_t time_stamp, 
     sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "rgb8", *frame_pkt.image).toImageMsg();
     msg->header.seq = frame_pkt.seq;
     msg->header.stamp = stamp;
-    cam_handler->pub_handler_.publish(msg);
+    cam_h->pub_handler_.publish(msg);
 }
