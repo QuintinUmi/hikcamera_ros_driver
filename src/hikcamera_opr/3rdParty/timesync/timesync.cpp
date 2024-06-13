@@ -171,6 +171,7 @@ void TimeSync::PollDataLoop() {
       uint32_t get_buf_size;
       uint8_t *cache_buf = comm_->FetchCacheFreeSpace(&get_buf_size);
       if (get_buf_size) {
+        auto gps_rcv_time = std::chrono::high_resolution_clock::now();;
         uint32_t read_data_size;
         read_data_size = uart_->Read((char *)cache_buf, get_buf_size);
         if (read_data_size) {
@@ -183,7 +184,7 @@ void TimeSync::PollDataLoop() {
               if ((strstr((const char *)packet.data, "$GPRMC")) ||
                       (strstr((const char *)packet.data , "$GNRMC"))){
                 uint64_t gps_time_ns = ProcessRMCData((const char *)packet.data, packet.data_len);
-                
+                fn_cb_(gps_time_ns, gps_rcv_time, client_data_);
                 printf("RMC data parse success!.\n");
               }
             }

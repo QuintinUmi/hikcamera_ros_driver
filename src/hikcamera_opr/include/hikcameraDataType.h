@@ -13,6 +13,4 @@ typedef struct _CAMERA_INFO_
 
 }CAMERA_INFO;
 
-
-
 #endif

@@ -43,11 +43,10 @@ int main(int argc, char *argv[])
 
     nRet = hikCamera.setCameraParam();
     if(MV_OK != nRet){
-        printf("There is something wrong with hikcamera parameters setting!\n");
+        printf("Error Occurred in hikcamera parameters setting!\n");
         getchar();
     }
     cameraInfo = hikCamera.start_grab();
-    
 
     void *pUser = cameraInfo.pUser;
     unsigned int nDataSize = cameraInfo.nDataSize;

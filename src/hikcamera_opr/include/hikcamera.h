@@ -1,6 +1,9 @@
 #ifndef HIKCAMERA_H_
 #define HIKCAMERA_H_
 
+#include <condition_variable>
+#include <chrono>
+
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
 
@@ -24,7 +27,7 @@ namespace hikcamera_opr
     {
         public:
 
-            struct _HIKCAMERA_PARAM_{
+            typedef struct HIKCAMERA_PARAM{
 
                 int width;
                 int height;
@@ -52,7 +55,7 @@ namespace hikcamera_opr
 
                 int bayerCvtQuality;
 
-            };
+            }HIKCAMERA_PARAM;
 
         public:
 
@@ -86,7 +89,8 @@ namespace hikcamera_opr
 
             cv::Mat grabOneFrame2Mat();
             cv::Mat grabOneFrame2Mat(bool undistortion, int interpolation = 1);
-
+            
+            ros::NodeHandle getRosHandler();
             cv::Mat getNewCameraMatrix();
 
             int freeFrameCache();
@@ -98,7 +102,7 @@ namespace hikcamera_opr
         protected:
             CAMERA_INFO cameraInfo;
 
-            _HIKCAMERA_PARAM_ hikcamera_param;
+            HIKCAMERA_PARAM hikcamera_param;
 
             cv::String cameraIntrinsicsPath;
             bool undistortion;
@@ -128,6 +132,8 @@ namespace hikcamera_opr
     class HikCameraSync : public HikCamera {
         
         public:
+            using CLK = std::chrono::high_resolution_clock;
+            using NS = std::chrono::nanoseconds;
 
             typedef struct TIME_STAMP
             {
@@ -136,12 +142,17 @@ namespace hikcamera_opr
             }TIME_STAMP;
 
             struct FramePacket {
+                uint32_t seq;
                 std::shared_ptr<cv::Mat> image;
-                std::chrono::high_resolution_clock::time_point rcv_time;
+                CLK::time_point rcv_time;
+                uint64_t sync_time_stamp;
+                volatile bool is_sync_base;
 
-                FramePacket(const std::shared_ptr<cv::Mat>& img, std::chrono::high_resolution_clock::time_point image_time_stamp)
-                    : image(img), rcv_time(image_time_stamp) {}
+                FramePacket(const std::shared_ptr<cv::Mat>& img, uint32_t frame_seq, CLK::time_point frame_rcv_time)
+                    : image(img), seq(frame_seq), rcv_time(frame_rcv_time), is_sync_base(false) {}
             };
+
+            typedef void (*PublishCb)(FramePacket frame_pkg, uint64_t time_stamp, void* client_data);
 
             HikCameraSync() : HikCamera(), exit_get_frame_wt_(false), start_get_frame_wt_(false) {};
             HikCameraSync(ros::NodeHandle &nodeHandle, int cameraIndex) : HikCamera(nodeHandle, cameraIndex), 
@@ -154,30 +165,75 @@ namespace hikcamera_opr
 
             ~HikCameraSync() override = default;
 
-            int initTimeSync(uint8_t baudrate_index, uint8_t parity, const std::string& shm_name);
-            int initCameraSetting();
+            int32_t SetPublishCb(PublishCb cb, void *data) {
+            if ((cb != nullptr) || (data != nullptr)) {
+                    pub_cb_ = cb;
+                    client_data_ = data;
+                    return 0;
+                } else {
+                    return -1;
+                }
+            }
+
+            int initTimeSync(uint32_t freq, uint8_t baudrate_index, uint8_t parity, const std::string& shm_name);
+            int initCameraSetting(std::string publish_topic = "/hikcamera/img_stream");
             int startSyncFrameGrab();
             int stopSyncFrameGrab();
 
 
         private:
+
+            uint32_t freq_;
+            NS ideal_interval_;
+            uint64_t offset_shutter_time_;
+
             // std::shared_ptr<UserUart> uart_;
             std::shared_ptr<ShmHandler<TIME_STAMP>> shm_;
 
             TimeSync *timesync_;
             TimeSyncConfig timesync_config_;
             std::mutex config_mutex_;
+            NS offset_serial_time_;
 
-            int64_t gps_time_ns_;
+
+            std::deque<FramePacket> queue_;
+            uint32_t seq_;
+            uint32_t base_seq_;
+            uint64_t base_time_stamp_;
+            uint64_t gps_time_stamp_;
+            uint64_t last_gps_time_stamp_;
+            volatile bool is_gps_update_;
+            CLK::time_point base_time_;
+            CLK::time_point gps_rcv_time_;
+            CLK::time_point last_gps_rcv_time_;
+            CLK::time_point frame_rcv_time_;
+            double stamp_scale_;
+            std::mutex sync_mtx_;
+            volatile bool sync_flag_;
 
             std::shared_ptr<std::thread> get_frame_wt_;
             volatile bool exit_get_frame_wt_;
             volatile bool start_get_frame_wt_;
 
-            std::mutex sync_mtx_;
+            std::shared_ptr<std::thread> queue_process_wt_;
+            volatile bool exit_queue_process_wt_;
+            volatile bool start_queue_process_wt_;
 
-            static void ReceiveSyncTimeCallback(uint64_t gps_time_ns, void *client_data);
+            ros::Publisher pub_handler_;
+            PublishCb pub_cb_;
+            void *client_data_;
+
+            std::mutex queue_mtx_;
+            std::condition_variable queue_cond_var_;
+
+            static void ReceiveSyncTimeCallback(uint64_t gps_time, 
+                                                CLK::time_point gps_rcv_time, 
+                                                void *client_data);
+            void SyncStatusQueryLoop();
+            
             void GetFrameWorkThread();
+            void QueueProcessWorkThread();
+            static void PublishCallBack(FramePacket frame_pkg, uint64_t time_stamp, void* client_data);
     };
 }
 

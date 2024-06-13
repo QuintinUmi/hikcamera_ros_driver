@@ -35,7 +35,9 @@ namespace livox_ros {
   typedef void (*FnReceiveSyncTimeCb)(const char *rmc, uint32_t rmc_length,
                                       void *client_data);
 
-  typedef void (*CamReceiveSyncTimeCb)(uint64_t gps_time_ns, void *client_data);
+  typedef void (*CamReceiveSyncTimeCb)(uint64_t gps_time_ns, 
+                                      std::chrono::high_resolution_clock::time_point gps_rcv_time, 
+                                      void *client_data);
 
   enum FsmPollState { kOpenDev, kPrepareDev, kCheckDevState, kFsmDevUndef };
 
