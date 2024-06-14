@@ -146,12 +146,13 @@ uint64_t TimeSync::ProcessRMCData(const char* rmc, uint32_t rmc_length) {
     std::string time_str = tokens[1];
     std::string date_str = tokens[9];
 
+    
     try {
         int hours = stoi(time_str.substr(0, 2));
         int minutes = stoi(time_str.substr(2, 2));
         int seconds = stoi(time_str.substr(4, 2));
         int milliseconds = 0;
-
+        
         if (time_str.size() > 6) {
             milliseconds = stoi(time_str.substr(7, 2)) * 10; 
         }
@@ -159,7 +160,7 @@ uint64_t TimeSync::ProcessRMCData(const char* rmc, uint32_t rmc_length) {
         int day = stoi(date_str.substr(0, 2));
         int month = stoi(date_str.substr(2, 2));
         int year = stoi(date_str.substr(4, 2)) + 2000; 
-
+        
         std::tm t = {};
         t.tm_year = year - 1900; 
         t.tm_mon = month - 1;    
@@ -168,7 +169,7 @@ uint64_t TimeSync::ProcessRMCData(const char* rmc, uint32_t rmc_length) {
         t.tm_min = minutes;
         t.tm_sec = seconds;
 
-        std::time_t time_epoch = std::mktime(&t);
+        std::time_t time_epoch = timegm(&t);
 
         if (time_epoch == -1) {
             std::cerr << "Failed to convert time to epoch." << std::endl;
@@ -176,7 +177,7 @@ uint64_t TimeSync::ProcessRMCData(const char* rmc, uint32_t rmc_length) {
         }
 
         uint64_t timestamp_ns = static_cast<uint64_t>(time_epoch) * 1000000000 + milliseconds * 1000000;
-
+        
         return timestamp_ns;
     } catch (const std::invalid_argument& e) {
         std::cerr << "Invalid argument: " << e.what() << std::endl;

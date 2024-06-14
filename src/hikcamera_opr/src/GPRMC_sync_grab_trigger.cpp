@@ -38,7 +38,8 @@ int main(int argc, char *argv[])
     rosHandle.param("trigger_rate", trigger_rate, 10);
 
     int initRes = 0;
-    initRes |= cam_h.setExposureTime(30000000);
+    // initRes |= cam_h.setExposureTime(30000000);
+    initRes |= cam_h.setExposureTime(0);
     initRes |= cam_h.setGprmcTransmitTime(BR115200);
     initRes |= cam_h.initTimeSync(trigger_rate, GPRMC_serial_name, BR115200, P_8N1, "none");
     initRes |= cam_h.initCameraSettingSync(image_publish_topic);

@@ -914,7 +914,7 @@ void HikCameraSync::GetFrameWorkThread() {
                     std::to_string(std::chrono::duration_cast<NS>(image_rcv_time.time_since_epoch()).count()) + "], Width: [" +
                     std::to_string(stFrameOut.stFrameInfo.nWidth) + "], Height: [" +
                     std::to_string(stFrameOut.stFrameInfo.nHeight) + "], nFrameLen: [" +
-                    std::to_string(stFrameOut.stFrameInfo.nFrameLen)+ "]";
+                    std::to_string(stFrameOut.stFrameInfo.nFrameLen)+ "]\n";
         ROS_INFO_STREAM(debug_msg.c_str());
 
 
