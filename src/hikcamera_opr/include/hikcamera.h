@@ -143,13 +143,13 @@ namespace hikcamera_opr
 
             struct FramePacket {
                 uint32_t seq;
-                std::shared_ptr<cv::Mat> image;
+                std::shared_ptr<MV_FRAME_OUT> frame;
                 CLK::time_point rcv_time;
                 uint64_t sync_time_stamp;
                 volatile bool is_sync_base;
 
-                FramePacket(const cv::Mat& img, uint32_t frame_seq, CLK::time_point frame_rcv_time)
-                    : image(std::make_shared<cv::Mat>(img)), seq(frame_seq), rcv_time(frame_rcv_time), is_sync_base(false) {}
+                FramePacket(const MV_FRAME_OUT& frame_out, uint32_t frame_seq, CLK::time_point frame_rcv_time)
+                    : frame(std::make_shared<MV_FRAME_OUT>(frame_out)), seq(frame_seq), rcv_time(frame_rcv_time), is_sync_base(false) {}
             };
 
             typedef void (*PublishCb)(FramePacket frame_pkg, uint64_t time_stamp, void* client_data);
@@ -179,12 +179,35 @@ namespace hikcamera_opr
             int startSyncFrameGrab();
             int stopSyncFrameGrab();
 
+            int setExposureTime(uint64_t exposure_time_ns) {
+                offset_exposure_time_ = exposure_time_ns / 2;
+                ROS_INFO("Set offset_exposure_time = %ld", offset_exposure_time_);
+                return 0;
+            };
+            int setGprmcTransmitTime(uint8_t baudrate_index = BR115200) {
+                int GPRMC_MAX_LENGTH = 66;
+                if (baudrate_index < BRUnkown) {
+                    constexpr int bitsPerCharacter = 10;
+                    double timePerCharacterSeconds = static_cast<double>(bitsPerCharacter) / baudRateValues[static_cast<int>(baudrate_index)];
+                    double maxTransmissionTimeSeconds = GPRMC_MAX_LENGTH * timePerCharacterSeconds;
+                    auto maxTransmissionTimeNanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                        std::chrono::duration<double>(maxTransmissionTimeSeconds)
+                    );
+                    offset_serial_time_ = maxTransmissionTimeNanoseconds;
+                    ROS_INFO("Set offset_serial_time = %ld", offset_serial_time_.count());
+                    return 0;
+                } else {
+                    ROS_ERROR("Invalid baudrate index!");
+                    return 1;
+                }
+            }
+
 
         private:
 
             uint32_t freq_;
             NS ideal_interval_;
-            uint64_t offset_shutter_time_;
+            uint64_t offset_exposure_time_;
 
             std::shared_ptr<ShmHandler<TIME_STAMP>> shm_;
 
