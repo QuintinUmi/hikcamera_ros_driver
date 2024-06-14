@@ -46,11 +46,9 @@ int main(int argc, char *argv[])
         return -1;
     }
     
-    while(ros::ok()) {
+    while(ros::ok() && ros::master::check()) {
         ros::Rate(50).sleep();
     }
-
-    cam_h.stopSyncFrameGrab();
 
     
     return 0;

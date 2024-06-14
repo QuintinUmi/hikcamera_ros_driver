@@ -154,12 +154,23 @@ namespace hikcamera_opr
 
             typedef void (*PublishCb)(FramePacket frame_pkg, uint64_t time_stamp, void* client_data);
 
-            HikCameraSync() : HikCamera() {};
-            HikCameraSync(ros::NodeHandle &nodeHandle, int cameraIndex) : HikCamera(nodeHandle, cameraIndex) {};
+            HikCameraSync() : HikCamera(),
+                            start_get_frame_wt_(false), exit_get_frame_wt_(false),
+                            start_queue_process_wt_(false), exit_queue_process_wt_(false)
+                            {initValuable();};
+
+            HikCameraSync(ros::NodeHandle &nodeHandle, int cameraIndex) : HikCamera(nodeHandle, cameraIndex),
+                            start_get_frame_wt_(false), exit_get_frame_wt_(false),
+                            start_queue_process_wt_(false), exit_queue_process_wt_(false)
+                            {initValuable();};
+
             HikCameraSync(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable = true, int FrameRate = 80, int ExposureTime = 5000, 
                         int GainAuto = 2, int bayerCvtQuality = 1, bool undistortion = false, double alpha = 1.0)
                         : HikCamera(width, height, Offset_x, Offset_y, FrameRateEnable, FrameRate, ExposureTime, 
-                        GainAuto, bayerCvtQuality , undistortion, alpha) {};
+                        GainAuto, bayerCvtQuality , undistortion, alpha),
+                            start_get_frame_wt_(false), exit_get_frame_wt_(false),
+                            start_queue_process_wt_(false), exit_queue_process_wt_(false)
+                            {initValuable();};
 
             ~HikCameraSync() override = default;
 
@@ -198,13 +209,17 @@ namespace hikcamera_opr
             std::mutex sync_mtx_;
             volatile bool sync_flag_;
 
+            std::shared_ptr<std::thread> sync_status_query_wt_;
+            volatile bool exit_sync_status_query_wt_;
+            volatile bool start_sync_status_query_wt_;
+
             std::shared_ptr<std::thread> get_frame_wt_;
-            std::atomic<bool> exit_get_frame_wt_;
-            std::atomic<bool> start_get_frame_wt_;
+            volatile bool exit_get_frame_wt_;
+            volatile bool start_get_frame_wt_;
 
             std::shared_ptr<std::thread> queue_process_wt_;
-            std::atomic<bool> exit_queue_process_wt_;
-            std::atomic<bool> start_queue_process_wt_;
+            volatile bool exit_queue_process_wt_;
+            volatile bool start_queue_process_wt_;
 
             image_transport::Publisher pub_handler_;
             PublishCb pub_cb_;
@@ -212,6 +227,8 @@ namespace hikcamera_opr
 
             std::mutex queue_mtx_;
             std::condition_variable queue_cond_var_;
+
+            void initValuable();
 
             int32_t SetPublishCb(PublishCb cb, void *data) {
             if ((cb != nullptr) || (data != nullptr)) {
