@@ -11,11 +11,11 @@ LineSelector: 0
 LineMode: 0
 LineSource: 9
 
-StrobeEnable: True
+StrobeEnable: 0
 StrobeLineDelay: 0
 StrobeLinePreDelay: 0
 
-ExposureAuto: 0
+ExposureAuto: 1
 ExposureTimeUpper: 35000
 ExposureTimeLower: 25000
 ExposureTime: 30000

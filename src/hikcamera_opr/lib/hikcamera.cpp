@@ -216,77 +216,68 @@ int HikCamera::setCameraParam()
     int nRet = MV_OK;
 
     // 设置 Width
-    nRet = MV_CC_SetIntValue(camHandle, "Width", this->hikcamera_param.width);
+    nRet |= MV_CC_SetIntValue(camHandle, "Width", this->hikcamera_param.width);
     if (nRet != MV_OK) {
         printf("Error setting Width: %d\n", nRet);
-        return nRet;
     }
 
     // 设置 Height
-    nRet = MV_CC_SetIntValue(camHandle, "Height", this->hikcamera_param.height);
+    nRet |= MV_CC_SetIntValue(camHandle, "Height", this->hikcamera_param.height);
     if (nRet != MV_OK) {
         printf("Error setting Height: %d\n", nRet);
-        return nRet;
     }
 
     // 设置 OffsetX
-    nRet = MV_CC_SetIntValue(camHandle, "OffsetX", this->hikcamera_param.Offset_x);
+    nRet |= MV_CC_SetIntValue(camHandle, "OffsetX", this->hikcamera_param.Offset_x);
     if (nRet != MV_OK) {
         printf("Error setting OffsetX: %d\n", nRet);
-        return nRet;
     }
 
     // 设置 OffsetY
-    nRet = MV_CC_SetIntValue(camHandle, "OffsetY", this->hikcamera_param.Offset_y);
+    nRet |= MV_CC_SetIntValue(camHandle, "OffsetY", this->hikcamera_param.Offset_y);
     if (nRet != MV_OK) {
         printf("Error setting OffsetY: %d\n", nRet);
-        return nRet;
     }
 
 
     // 设置 FrameRateEnable
-    nRet = MV_CC_SetBoolValue(camHandle, "AcquisitionFrameRateEnable", this->hikcamera_param.FrameRateEnable);
+    nRet |= MV_CC_SetBoolValue(camHandle, "AcquisitionFrameRateEnable", this->hikcamera_param.FrameRateEnable);
     if (nRet != MV_OK) {
         printf("Error setting FrameRateEnable: %d\n", nRet);
-        return nRet;
     }
 
     // 设置 FrameRate
-    nRet = MV_CC_SetFloatValue(camHandle, "AcquisitionFrameRate", this->hikcamera_param.FrameRate);
+    nRet |= MV_CC_SetFloatValue(camHandle, "AcquisitionFrameRate", this->hikcamera_param.FrameRate);
     if (nRet != MV_OK) {
         printf("Error setting FrameRate: %d\n", nRet);
-        return nRet;
     }
 
 
 
     // 设置 TriggerMode
-    nRet = MV_CC_SetEnumValue(camHandle, "TriggerMode", this->hikcamera_param.TriggerMode);
+    nRet |= MV_CC_SetEnumValue(camHandle, "TriggerMode", this->hikcamera_param.TriggerMode);
     if (nRet != MV_OK) {
         printf("Error setting TriggerMode: %d\n", nRet);
-        return nRet;
     }
 
     if(this->hikcamera_param.TriggerMode == 1)
     {
         // 设置 LineSelector
-        nRet = MV_CC_SetEnumValue(camHandle, "LineSelector", this->hikcamera_param.LineSelector);
+        nRet |= MV_CC_SetEnumValue(camHandle, "LineSelector", this->hikcamera_param.LineSelector);
         if (nRet != MV_OK) {
             printf("Error setting LineSelector: %d\n", nRet);
-            return nRet;
         }
 
         if(this->hikcamera_param.LineSelector == 2)
         {
-            nRet = MV_CC_SetEnumValue(camHandle, "LineMode", this->hikcamera_param.LineMode);//仅line2需要设置
+            nRet |= MV_CC_SetEnumValue(camHandle, "LineMode", this->hikcamera_param.LineMode);//仅line2需要设置
             if(nRet != MV_OK)
             {
                 printf("Error setting LineMode: %d\n", nRet);
-                return nRet;
             }
         }
         
-        // nRet = MV_CC_SetEnumValue(camHandle, "LineSource", this->hikcamera_param.LineSource);
+        // nRet |= MV_CC_SetEnumValue(camHandle, "LineSource", this->hikcamera_param.LineSource);
         // if(nRet != MV_OK)
         // {
         //     printf("Error setting LineSource: %d\n", nRet);
@@ -294,21 +285,21 @@ int HikCamera::setCameraParam()
         // }
 
         // // 设置 StrobeLineDelay
-        // nRet = MV_CC_SetIntValue(camHandle, "LineDelay", this->hikcamera_param.StrobeLineDelay);
+        // nRet |= MV_CC_SetIntValue(camHandle, "LineDelay", this->hikcamera_param.StrobeLineDelay);
         // if (nRet != MV_OK) {
         //     printf("Error setting StrobeLineDelay: %d\n", nRet);
         //     return nRet;
         // }
 
         // // 设置 StrobeLinePreDelay
-        // nRet = MV_CC_SetIntValue(camHandle, "LinePreDelay", this->hikcamera_param.StrobeLinePreDelay);
+        // nRet |= MV_CC_SetIntValue(camHandle, "LinePreDelay", this->hikcamera_param.StrobeLinePreDelay);
         // if (nRet != MV_OK) {
         //     printf("Error setting StrobeLinePreDelay: %d\n", nRet);
         //     return nRet;
         // }
 
         // // 设置 StrobeEnable
-        // nRet = MV_CC_SetBoolValue(camHandle, "StrobeEnable", this->hikcamera_param.StrobeEnable);
+        // nRet |= MV_CC_SetBoolValue(camHandle, "StrobeEnable", this->hikcamera_param.StrobeEnable);
         // if (nRet != MV_OK) {
         //     printf("Error setting StrobeEnable: %d\n", nRet);
         //     return nRet;
@@ -318,50 +309,44 @@ int HikCamera::setCameraParam()
 
 
     // 设置 ExposureAuto
-    nRet = MV_CC_SetEnumValue(camHandle, "ExposureAuto", this->hikcamera_param.ExposureAuto);
+    nRet |= MV_CC_SetEnumValue(camHandle, "ExposureAuto", this->hikcamera_param.ExposureAuto);
     if (nRet != MV_OK) {
         printf("Error setting ExposureAuto: %d\n", nRet);
-        return nRet;
     }
 
     if(this->hikcamera_param.ExposureAuto != 0)
     {
         // 设置 ExposureTimeUpper
-        nRet = MV_CC_SetIntValue(camHandle, "ExposureTimeUpper", this->hikcamera_param.ExposureTimeUpper);
+        nRet |= MV_CC_SetIntValue(camHandle, "AutoExposureTimeUpperLimit", this->hikcamera_param.ExposureTimeUpper);
         if (nRet != MV_OK) {
             printf("Error setting ExposureTimeUpper: %d\n", nRet);
-            return nRet;
         }
 
         // 设置 ExposureTimeLower
-        nRet = MV_CC_SetIntValue(camHandle, "ExposureTimeLower", this->hikcamera_param.ExposureTimeLower);
+        nRet |= MV_CC_SetIntValue(camHandle, "AutoExposureTimeLowerLimit", this->hikcamera_param.ExposureTimeLower);
         if (nRet != MV_OK) {
             printf("Error setting ExposureTimeLower: %d\n", nRet);
-            return nRet;
         }
 
-        // 设置 ExposureTime
-        nRet = MV_CC_SetFloatValue(camHandle, "ExposureTime", this->hikcamera_param.ExposureTime);
-        if (nRet != MV_OK) {
-            printf("Error setting ExposureTime: %d\n", nRet);
-            return nRet;
-        }
+    } 
 
+    // 设置 ExposureTime
+    nRet |= MV_CC_SetFloatValue(camHandle, "ExposureTime", this->hikcamera_param.ExposureTime);
+    if (nRet != MV_OK) {
+        printf("Error setting ExposureTime: %d\n", nRet);
     }
 
 
     // 设置 GainAuto
-    nRet = MV_CC_SetEnumValue(camHandle, "GainAuto", this->hikcamera_param.GainAuto);
+    nRet |= MV_CC_SetEnumValue(camHandle, "GainAuto", this->hikcamera_param.GainAuto);
     if (nRet != MV_OK) {
         printf("Error setting GainAuto: %d\n", nRet);
-        return nRet;
     }
 
     // 设置 Gain
-    nRet = MV_CC_SetFloatValue(camHandle, "Gain", this->hikcamera_param.Gain);
+    nRet |= MV_CC_SetFloatValue(camHandle, "Gain", this->hikcamera_param.Gain);
     if (nRet != MV_OK) {
         printf("Error setting Gain: %d\n", nRet);
-        return nRet;
     }
 
 
@@ -370,7 +355,7 @@ int HikCamera::setCameraParam()
 
     this->printParam();
 
-    return MV_OK;  
+    return nRet;  
 }
 int HikCamera::setCameraParam(int width, int height, int Offset_x, int Offset_y, bool FrameRateEnable, int FrameRate, int ExposureTime, 
                                 int GainAuto, int bayerCvtQuality)
