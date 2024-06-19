@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
     while(ros::ok()){
 
-        ros::spinOnce();
+        // ros::spinOnce();
         imgMsg = hikCamera.grabOneFrame2ROS();
         if(!imgMsg)
         {
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 
         imgPub.publish(imgMsg);
         
-        loop_rate.sleep();
+        // loop_rate.sleep();
     }
 
     // hikCamera.stop_grab();

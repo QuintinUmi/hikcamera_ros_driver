@@ -961,7 +961,7 @@ void HikCameraSync::QueueProcessWorkThread() {
 
         if (queue_.size() < freq_ / 5) {
             // ROS_WARN("Wait for queue size to %d!", freq_ / 10);
-            std::this_thread::sleep_for(std::chrono::nanoseconds(ideal_interval_.count()));
+            // std::this_thread::sleep_for(std::chrono::nanoseconds(ideal_interval_.count() / 100));
             continue;
         }
 
@@ -1098,7 +1098,7 @@ void HikCameraSync::QueueProcessWorkThread() {
             last_rcv_time = frame_pkt.rcv_time;
         }
 
-        std::this_thread::sleep_for(std::chrono::nanoseconds(ideal_interval_.count() / 5));
+        // std::this_thread::sleep_for(std::chrono::nanoseconds(ideal_interval_.count() / 5));
     }
     ROS_WARN("Stop QueueProcessWorkThread");
 }
