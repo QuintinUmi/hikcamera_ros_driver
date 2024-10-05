@@ -204,6 +204,9 @@ target_link_libraries(hikcamera_lib
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
+add_executable(test1 src/test1.cpp)
+add_executable(test_multi_sync src/test_multi_sync.cpp)
+
 add_executable(msg_hikcamera_grab src/msg_hikcamera_grab.cpp)
 add_executable(msg_hikcamera_info src/msg_hikcamera_info.cpp)
 add_executable(img_hikcamera_grab_save src/img_hikcamera_grab_save.cpp)
@@ -224,6 +227,19 @@ add_executable(GPRMC_sync_grab_trigger src/GPRMC_sync_grab_trigger.cpp)
 # add_dependencies(msg_hikcamera_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
+
+target_link_libraries(test1
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  hikcamera_lib
+)
+
+target_link_libraries(test_multi_sync
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  hikcamera_lib
+)
+
 
 target_link_libraries(msg_hikcamera_grab
   ${catkin_LIBRARIES}
