@@ -9,6 +9,7 @@
                 "/home/quintinumi/git_package_src/wpr_simulation/devel/include/**",
                 "/home/quintinumi/git_package_src/ws_livox/devel/include/**",
                 "/opt/ros/noetic/include/**",
+                "/opt/ros/noetic/include/image_transport",
                 "/home/quintinumi/git_package_src/wpr_simulation/src/waterplus_map_tools/include/**",
                 "/home/quintinumi/git_package_src/wpr_simulation/src/wpb_home/wpb_home_bringup/include/**",
                 "/home/quintinumi/git_package_src/wpr_simulation/src/wpb_home/wpb_home_tutorials/include/**",

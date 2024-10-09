@@ -181,7 +181,7 @@ static void* WorkThread(void* pUser)
 			break;
 		}
 			
-        nRet = MV_CC_GetOneFrameTimeout(pUser, pData, nDataSize, &stImageInfo, 1000);
+        nRet = MV_CC_GetOneFrameEx(pUser, pData, nDataSize, &stImageInfo);
 
         if (nRet == MV_OK)
         {
@@ -327,9 +327,9 @@ int main(int argc, char *argv[])
 
         for(int i = 0; i < CAMERA_NUM; i++)
         {
-            // 设置触发模式为off
-            // set trigger mode as off
-            nRet = MV_CC_SetEnumValue(handle[i], "TriggerMode", MV_TRIGGER_MODE_OFF);
+            // 设置触发模式为on
+            // set trigger mode as on
+            nRet = MV_CC_SetEnumValue(handle[i], "TriggerMode", MV_TRIGGER_MODE_ON);
             if (MV_OK != nRet)
             {
                 printf("Cam[%d]: MV_CC_SetTriggerMode fail! nRet [%x]\n", i, nRet);

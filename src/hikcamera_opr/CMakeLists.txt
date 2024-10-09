@@ -206,6 +206,8 @@ target_link_libraries(hikcamera_lib
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(test1 src/test1.cpp)
 add_executable(test_multi_sync src/test_multi_sync.cpp)
+add_executable(test_multi_trigger src/test_multi_trigger.cpp)
+add_executable(UDP_brocast src/UDP_brocast.cpp)
 
 add_executable(msg_hikcamera_grab src/msg_hikcamera_grab.cpp)
 add_executable(msg_hikcamera_info src/msg_hikcamera_info.cpp)
@@ -239,6 +241,18 @@ target_link_libraries(test_multi_sync
   ${OpenCV_LIBRARIES}
   hikcamera_lib
 )
+target_link_libraries(test_multi_trigger
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  hikcamera_lib
+)
+
+target_link_libraries(UDP_brocast
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  hikcamera_lib
+)
+
 
 
 target_link_libraries(msg_hikcamera_grab
